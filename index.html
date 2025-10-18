@@ -121,6 +121,10 @@
 
           <div id="redFlags" class="hidden mb-3"></div>
 
+          <div class="mb-2 text-sm">
+            <span id="modeBadge" class="badge badge-outline hidden"></span>
+          </div>
+
           <div id="bars" class="space-y-4 text-left">
             <!-- Bars inserted here -->
           </div>
@@ -180,6 +184,7 @@
 
       resultsSection: document.getElementById('resultsSection'),
       redFlags: document.getElementById('redFlags'),
+      modeBadge: document.getElementById('modeBadge'),
       bars: document.getElementById('bars'),
       analysisSummary: document.getElementById('analysisSummary'),
       recommendationSection: document.getElementById('recommendationSection'),
@@ -288,20 +293,18 @@
 
       // 1) Precheck: Is it stool?
       setLoading(true, 'Validierung läuft…', 'Das Bild wird kurz geprüft…');
+      let precheckOK = true;
       try {
-        const ok = await precheckIsStool(key, currentImageData);
-        if (!ok) {
-          setLoading(false);
-          toast('Das Bild scheint kein Stuhlgang zu sein. Bitte ein anderes Foto verwenden.');
-          return resetApp();
-        }
+        precheckOK = await precheckIsStool(key, currentImageData);
       } catch (e) {
-        setLoading(false);
-        toast('Validierung fehlgeschlagen: '+e.message);
-        return resetApp();
+        precheckOK = false;
+        toast('Hinweis: Vorprüfung nicht möglich, versuche direkte Analyse…', false);
+      }
+      if (!precheckOK) {
+        toast('Bild wirkt ungewöhnlich (kein typischer Stuhl) – Ergebnis ggf. unzuverlässig.', false);
       }
 
-      // 2) Heuristic priors from triage
+      // 2) Heuristiken aus Checkboxes
       const observations = {
         sticky: !!els.isSticky.checked,
         smelly: !!els.smellsStrong.checked,
@@ -309,13 +312,14 @@
       };
       const heur = heuristicScores(observations); // [protein,fat,carb]
 
-      // 3) Main analysis (Responses + JSON Schema strict)
+      // 3) Hauptanalyse (Responses + JSON Schema strict)
       setLoading(true, 'Echte KI-Analyse läuft…', 'Ihr Bild und Ihre Angaben werden analysiert…');
-      let aiObj = null;
+      let aiObj = null, usedFallback = false;
       try {
         aiObj = await analyzeWithOpenAI(key, currentImageData, observations);
       } catch (e) {
-        // fall back to heuristic result
+        usedFallback = true;
+        toast('Modellantwort fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
         aiObj = {
           summary: 'Modellantwort nicht verfügbar – heuristische Einschätzung angezeigt.',
           likelihoods: {
@@ -329,9 +333,22 @@
         };
       }
 
-      // 4) Combine AI + Heuristics (confidence-weighted) and render
-      const final = combineScores(aiObj.likelihoods, heur, Number(aiObj.confidence||60)); // [protein,fat,carb]
-      renderBars(final[1], final[0], final[2]); // display order: fat, protein, carb
+      // 4) Ausgabe berechnen
+      let final;
+      const anyObs = observations.sticky || observations.smelly || observations.watery;
+      if (usedFallback && !anyObs) {
+        // Kein Vision + keine Beobachtungen => zeige neutral 0/0/0 statt 33/33/34
+        final = [0,0,0];
+      } else {
+        final = combineScores(aiObj.likelihoods, heur, Number(aiObj.confidence||60));
+      }
+
+      // Mode-Badge
+      els.modeBadge.classList.remove('hidden');
+      els.modeBadge.textContent = usedFallback ? '⚠️ Fallback (ohne Vision)' : '🧠 Vision-Analyse aktiv';
+      els.modeBadge.className = 'badge ' + (usedFallback ? 'badge-warning' : 'badge-success');
+
+      renderBars(final[1], final[0], final[2]); // display: fat, protein, carb
       els.analysisSummary.textContent = (aiObj.summary || '').trim();
 
       if (aiObj.red_flags?.present || aiObj.red_flags?.notes) {
@@ -360,7 +377,7 @@
       const schema = {
         type: "object",
         additionalProperties: false,
-        required: ["is_stool", "notes"], // alle properties auch required
+        required: ["is_stool", "notes"], // alle properties required
         properties: {
           is_stool: { type: "boolean" },
           notes:    { type: "string" }
@@ -405,8 +422,8 @@
     async function analyzeWithOpenAI(key, imageDataUrl, observations){
       const instructions = [
         "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
-        "Analysiere Heuristiken: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
-        `Nutzer-Beobachtungen: klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
+        "Analysiere visuell: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
+        `Nutzer-Beobachtungen (sekundär): klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
         "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
         "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
         "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
@@ -491,7 +508,7 @@
 
     // ---------- Rendering ----------
     function renderBars(fatPct, proteinPct, carbPct){
-      const norm = roundHundred([+fatPct||0, +proteinPct||0, +carbPct||0]);
+      const norm = normalizeHundred([+fatPct||0, +proteinPct||0, +carbPct||0]);
       const rows = [
         { label:"Fett-Maldigestion",    val:norm[0], cls:"progress-success" },
         { label:"Protein-Maldigestion", val:norm[1], cls:"progress-info"    },
@@ -592,6 +609,7 @@
       els.triageSection.classList.add('hidden');
       els.resultsSection.classList.add('hidden');
       els.recommendationSection.classList.add('hidden');
+      els.modeBadge.classList.add('hidden');
 
       els.actionButton.textContent = 'ANALyze';
 
@@ -619,23 +637,29 @@
       return '';
     }
 
-    // Normalize to 100 using largest remainder
-    function roundHundred(arr){
-      const base = arr.map(x => Math.max(0, Math.min(100, Math.floor(+x || 0))));
+    // Normalize with guard: if total <= 0, return zeros (prevents 33/33/34)
+    function normalizeHundred(arr){
+      const total = arr.reduce((a,b)=>a+Math.max(0, +b||0), 0);
+      if (total <= 0) return [0,0,0];
+      const raw = arr.map(x => Math.max(0, +x||0) / total * 100);
+      const base = raw.map(x => Math.floor(x));
       let rest = 100 - base.reduce((a,b)=>a+b,0);
-      const frac = arr.map((x,i)=>({i, f:(+x||0)-base[i]})).sort((a,b)=>b.f-a.f);
+      const frac = raw.map((x,i)=>({i, f:x-base[i]})).sort((a,b)=>b.f-a.f);
       for (let k=0;k<rest;k++) base[frac[k % frac.length].i]++;
       return base;
     }
 
     function heuristicScores({sticky, smelly, watery}){
       const s = sticky ? 1 : 0, m = smelly ? 1 : 0, w = watery ? 1 : 0;
+      // Neu: ohne Beobachtungen -> keine Heuristik
+      if (s + m + w === 0) return [0, 0, 0]; // [protein, fat, carb]
+
       let P=33, F=33, C=34;
       F += 40*s + 10*m*0.5;
       P += 40*m + 10*s*0.5;
       C += 40*w + 10*s*0.2 + 10*m*0.2;
       const sum = P+F+C, raw = [P/sum*100, F/sum*100, C/sum*100];
-      return roundHundred(raw); // [protein, fat, carb]
+      return normalizeHundred(raw); // [protein, fat, carb]
     }
 
     function combineScores(aiLik, heur, aiConf=60){
@@ -646,7 +670,7 @@
       ];
       const a = Math.max(0.55, Math.min(0.9, (aiConf/100)*0.8 + 0.1)); // weight for AI
       const mix = [0,1,2].map(i => a*ai[i] + (1-a)*heur[i]);
-      return roundHundred(mix); // [protein, fat, carb]
+      return normalizeHundred(mix); // [protein, fat, carb]
     }
   </script>
 </body>
