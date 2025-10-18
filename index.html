@@ -39,7 +39,7 @@
               <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
               <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key zeigen/verbergen">👁️</button>
             </div>
-            <div class="label"><span class="label-text-alt">Wird nur lokal auf diesem Gerät gespeichert.</span></div>
+            <div class="label"><span class="label-text-alt">Nur lokal auf diesem Gerät gespeichert.</span></div>
           </label>
 
           <label class="form-control">
@@ -69,13 +69,20 @@
 
           <div class="mt-3 text-center">
             <button id="btnPick" class="btn btn-primary w-full">Bild auswählen</button>
-            <!-- Ein einzelnes Input ohne capture -> Mobil zeigt i.d.R. Kamera ODER Galerie -->
+            <!-- Ein einzelnes Input -> Mobil zeigt Kamera ODER Galerie -->
             <input id="fileInput" type="file" accept="image/*" class="hidden" />
             <p class="text-xs text-base-content/60 mt-2">Tipp: gutes Licht, nicht zu weit weg.</p>
           </div>
 
           <div id="previewWrap" class="mt-4 hidden">
-            <img id="preview" class="w-full rounded-lg shadow" alt="Vorschau" />
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm text-base-content/70">Vorschau (nur Anzeige – Analyse nutzt das unveränderte Original)</span>
+              <button id="togglePixel" class="btn btn-ghost btn-xs">Verpixeln: AN</button>
+            </div>
+            <div id="previewBox" class="relative">
+              <canvas id="previewPix" class="w-full rounded-lg shadow"></canvas>
+              <img id="preview" class="w-full rounded-lg shadow hidden" alt="Vorschau" />
+            </div>
           </div>
         </section>
 
@@ -164,11 +171,16 @@
       apiKey: document.getElementById('apiKey'),
       toggleKey: document.getElementById('toggleKey'),
       amazonTag: document.getElementById('amazonTag'),
+
       btnPick: document.getElementById('btnPick'),
       fileInput: document.getElementById('fileInput'),
 
       previewWrap: document.getElementById('previewWrap'),
+      previewBox: document.getElementById('previewBox'),
+      previewPix: document.getElementById('previewPix'),
       preview: document.getElementById('preview'),
+      togglePixel: document.getElementById('togglePixel'),
+
       obsBox: document.getElementById('obsBox'),
       obsSticky: document.getElementById('obsSticky'),
       obsSmelly: document.getElementById('obsSmelly'),
@@ -192,7 +204,9 @@
     };
 
     // -------- State --------
-    let imageDataUrl = null;
+    let imageDataUrl = null;   // Original, unverändert – wird für die Analyse genutzt
+    let pixelViewOn = true;    // Vorschau standardmäßig verpixelt
+    let loadedImg = null;      // HTMLImageElement für Preview-Rendern
 
     // -------- Produkte (statisch, direkt /dp/ASIN) --------
     const PRODUCTS = {
@@ -235,6 +249,9 @@
       els.btnPick.addEventListener('click', ()=> els.fileInput.click());
       els.fileInput.addEventListener('change', onFileChange);
 
+      els.togglePixel.addEventListener('click', togglePixelPreview);
+      window.addEventListener('resize', ()=> { if (pixelViewOn && loadedImg) drawPixelPreview(loadedImg); });
+
       els.analyze.addEventListener('click', onAnalyze);
       els.reset.addEventListener('click', resetUI);
 
@@ -243,7 +260,7 @@
     })();
 
     function saveLocal(k, v){
-      try { localStorage.setItem(k, v); toast('Gespeichert', true); } catch {}
+      try { localStorage.setItem(k, v); } catch {}
     }
 
     function toast(msg, ok=false){
@@ -260,10 +277,28 @@
       if (!f) return;
       imageDataUrl = await fileToDataURL(f).catch(()=> null);
       if (!imageDataUrl){ toast('Konnte das Bild nicht laden.'); return; }
+
+      // Original <img> setzen (für nicht-verpixelte Anzeige)
       els.preview.src = imageDataUrl;
+
+      // Für pixelierte Vorschau ein HTMLImageElement laden
+      loadedImg = new Image();
+      loadedImg.crossOrigin = 'anonymous';
+      loadedImg.src = imageDataUrl;
+      await loadedImg.decode();
+
+      // UI sichtbar machen
       els.previewWrap.classList.remove('hidden');
       els.obsBox.classList.remove('hidden');
       els.results.classList.add('hidden');
+
+      // Standard: Pixel-Ansicht aktiv
+      pixelViewOn = true;
+      els.preview.classList.add('hidden');
+      els.previewPix.classList.remove('hidden');
+      els.togglePixel.textContent = 'Verpixeln: AN';
+      drawPixelPreview(loadedImg);
+
       e.target.value = '';
     }
 
@@ -276,6 +311,52 @@
       });
     }
 
+    function togglePixelPreview(){
+      if (!imageDataUrl) return;
+      pixelViewOn = !pixelViewOn;
+      if (pixelViewOn){
+        els.preview.classList.add('hidden');
+        els.previewPix.classList.remove('hidden');
+        els.togglePixel.textContent = 'Verpixeln: AN';
+        if (loadedImg) drawPixelPreview(loadedImg);
+      } else {
+        els.previewPix.classList.add('hidden');
+        els.preview.classList.remove('hidden');
+        els.togglePixel.textContent = 'Verpixeln: AUS';
+      }
+    }
+
+    // Nur Anzeige! Beeinflusst NICHT die Analyse (die nutzt imageDataUrl)
+    function drawPixelPreview(img){
+      const canvas = els.previewPix;
+      const box = els.previewBox;
+      const targetW = Math.max(240, Math.min(box.clientWidth || 600, 1000));
+      const ratio = img.naturalHeight / img.naturalWidth;
+      const targetH = Math.round(targetW * ratio);
+
+      canvas.width = targetW;
+      canvas.height = targetH;
+
+      // Kleine Zwischenleinwand
+      const pixelSize = 10; // Größe der "Kacheln" in der Ausgabe
+      const smallW = Math.max(16, Math.round(targetW / pixelSize));
+      const smallH = Math.max(16, Math.round(targetH / pixelSize));
+
+      const small = document.createElement('canvas');
+      small.width = smallW; small.height = smallH;
+      const sctx = small.getContext('2d');
+
+      // Runterskalieren mit Glättung
+      sctx.imageSmoothingEnabled = true;
+      sctx.drawImage(img, 0, 0, smallW, smallH);
+
+      // Hochskalieren ohne Glättung -> Pixel-Effekt
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.drawImage(small, 0, 0, smallW, smallH, 0, 0, targetW, targetH);
+    }
+
     function setLoading(on, msg='Analyse läuft…'){
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
@@ -284,6 +365,7 @@
 
     function resetUI(){
       imageDataUrl = null;
+      loadedImg = null;
       els.preview.src = '';
       els.previewWrap.classList.add('hidden');
       els.obsSticky.checked = false;
@@ -304,23 +386,19 @@
 
       setLoading(true, 'Bild wird geprüft…');
       try {
-        // 1) Vorprüfung (ist es überhaupt Stuhl – großzügig)
+        // 1) Vorprüfung (großzügig)
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const ptxt = extractJSONText(pre);
         const pobj = safeParseJSON(ptxt);
         if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
-        let proceed = false, uncertain = false;
-        if (pobj.is_stool === 'yes') proceed = true;
-        else if (pobj.is_stool === 'uncertain' && Number(pobj.confidence) >= 0.5){ proceed = true; uncertain = true; }
-
-        // 2) Extraktion
+        // 2) Extraktion (immer – wir zeigen das Ergebnis nur, wenn sinnvoll)
         setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, imageDataUrl);
         const rtxt = extractJSONText(res);
         const vision = safeParseJSON(rtxt);
         if (!vision) throw new Error('Analyse gab kein gültiges JSON zurück.');
-        await renderFinal(vision, {uncertain});
+        await renderFinal(vision);
 
         setLoading(false);
       } catch(e){
@@ -329,24 +407,21 @@
       }
     }
 
-    async function renderFinal(vo, opts={uncertain:false}){
-      // Scores berechnen (einfach & stabil)
+    async function renderFinal(vo){
       const obs = { sticky: els.obsSticky.checked, smelly: els.obsSmelly.checked, watery: els.obsWatery.checked };
       const { percents } = computeScoresFromFeatures(vo, obs);
 
       // Qualität
       const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
-      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.uncertain ? ' · unsicher' : '');
+      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel;
       els.qualityBadge.classList.remove('hidden');
-      els.qualityBadge.className = 'badge ' + (opts.uncertain ? 'badge-warning' : (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error'));
+      els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
 
-      // Balken + Warnzeichen + Kurztext
       renderBars(percents);
       renderRedFlags(vo.red_flags);
       els.summary.textContent = composePlainSummary(vo);
 
-      // Empfehlungen (Top-Empfehlung + 2 weitere)
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
@@ -390,7 +465,7 @@
       }
     }
 
-    // -------- Empfehlungen: Top hervorheben --------
+    // -------- Empfehlungen: Top hervorheben + 2 weitere --------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
@@ -494,31 +569,35 @@
     async function createShareImage(percents){
       if (!imageDataUrl) throw new Error('Kein Bild.');
 
-      // Bild laden
+      // Bild laden (Original – wir pixeln nur für das Share-Bild)
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = imageDataUrl;
       await img.decode();
 
-      // Verpixeln
-      const S = 16;
+      // Verpixeln (quadratisch 128×128)
+      const S = 16; // grobe Pixel
+      const side = 128;
       const small = document.createElement('canvas');
       small.width = S; small.height = S;
+
       const sctx = small.getContext('2d', { willReadFrequently:true });
-      const side = Math.min(img.naturalWidth, img.naturalHeight);
-      const sx = (img.naturalWidth - side)/2, sy = (img.naturalHeight - side)/2;
-      sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      // Quadratisch croppen
+      const crop = Math.min(img.naturalWidth, img.naturalHeight);
+      const sx = (img.naturalWidth - crop)/2;
+      const sy = (img.naturalHeight - crop)/2;
+      sctx.drawImage(img, sx, sy, crop, crop, 0, 0, S, S);
 
       const pix = document.createElement('canvas');
-      pix.width = 128; pix.height = 128;
+      pix.width = side; pix.height = side;
       const pctx = pix.getContext('2d');
       pctx.imageSmoothingEnabled = false;
-      pctx.drawImage(small, 0, 0, S, S, 0, 0, 128, 128);
+      pctx.drawImage(small, 0, 0, S, S, 0, 0, side, side);
 
-      // Endbild
+      // Endbild 128 Breite + Werte
       const HEADER = 22, VALUES_H = 62, GAP = 4;
       const out = document.createElement('canvas');
-      out.width = 128; out.height = HEADER + 128 + GAP + VALUES_H;
+      out.width = 128; out.height = HEADER + side + GAP + VALUES_H;
       const o = out.getContext('2d');
 
       // BG + Header
@@ -527,13 +606,13 @@
       o.fillStyle = '#F9FAFB'; o.font = 'bold 11px Inter, system-ui, sans-serif';
       o.fillText('Stuhlbild-Analyse', 6, 15);
 
-      // Bild
+      // Verpixeltes Bild
       o.imageSmoothingEnabled = false;
-      o.drawImage(pix, 0, HEADER, 128, 128);
+      o.drawImage(pix, 0, HEADER);
 
       // Werte
       o.imageSmoothingEnabled = true;
-      const top = HEADER + 128 + GAP;
+      const top = HEADER + side + GAP;
       drawValueRow(o, 'KH', percents.carb, 6, top + 6);
       drawValueRow(o, 'Protein', percents.protein, 6, top + 24);
       drawValueRow(o, 'Fett', percents.fat, 6, top + 42);
