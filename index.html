@@ -271,32 +271,45 @@
     }
 
     function setLoading(on, msg='Analyse läuft…') {
+      console.log(`--- Ladezustand: ${on} | Nachricht: ${msg} ---`);
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
       els.analyze.disabled = on;
     }
 
     async function onAnalyze(){
+      console.log('--- ANALYZE START ---');
       const key = els.apiKey.value.trim();
+      console.log('API Key vorhanden:', !!key);
       if (!key) { toast('Bitte zuerst den OpenAI API-Key oben eingeben.'); return; }
+      console.log('Bild geladen:', activeIndex >= 0);
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
       // Vorprüfung
       setLoading(true, 'Validierung des Bildes…');
       try {
+        console.log('Starte Precheck API-Aufruf...');
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const txt = extractJSONText(pre);
+        console.log('Precheck Roh-Antwort-Text:', txt.substring(0, 100) + '...');
         const obj = safeParseJSON(txt);
-        if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
+
+        if (!obj) {
+          console.error('Vorprüfung: Parsing Fehler. Text:', txt);
+          throw new Error('Vorprüfung lieferte kein valides JSON. (siehe Konsole)');
+        }
         if (!obj.is_stool) {
           setLoading(false);
-          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen.');
+          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen. (KI hat abgelehnt)');
           return;
         }
+        console.log('Precheck erfolgreich. is_stool:', obj.is_stool);
       } catch (e) {
+        console.error('Validierung fehlgeschlagen (Catch Block):', e);
+        const errorText = e.message.includes('valides JSON') ? e.message : `Fehler: ${e.message.substring(0, 80)}...`;
         setLoading(false);
-        toast('Validierung fehlgeschlagen: ' + e.message);
+        toast(`Validierung fehlgeschlagen: ${errorText}`);
         return;
       }
 
@@ -304,13 +317,21 @@
       setLoading(true, 'Echte Vision-Analyse…');
       let visionObj;
       try {
+        console.log('Starte Feature-Extraktion API-Aufruf...');
         const res = await callResponses_Extract(key, imageDataUrl);
         const txt = extractJSONText(res);
+        console.log('Extraktion Roh-Antwort-Text:', txt.substring(0, 100) + '...');
         visionObj = safeParseJSON(txt);
-        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
+        if (!visionObj) {
+           console.error('Extraktion: Parsing Fehler. Text:', txt);
+           throw new Error('Modell lieferte kein valides JSON. (siehe Konsole)');
+        }
+        console.log('Extraktion erfolgreich. Bristol:', visionObj.bristol);
       } catch (e) {
+        console.error('Analyse fehlgeschlagen (Catch Block):', e);
+        const errorText = e.message.includes('valides JSON') ? e.message : `Fehler: ${e.message.substring(0, 80)}...`;
         setLoading(false);
-        toast('Analyse fehlgeschlagen: ' + e.message);
+        toast(`Analyse fehlgeschlagen: ${errorText}`);
         return;
       }
 
@@ -337,6 +358,7 @@
       setLoading(false);
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+      console.log('--- ANALYZE END ---');
     }
 
     function resetResults(){
@@ -354,7 +376,10 @@
 
     // ---------- OpenAI Responses API ----------
     function extractJSONText(resp) {
+      // Prioritize the output_text field for JSON output
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
+
+      // Fallback: concatenate all text parts
       const texts = [];
       (function walk(x){
         if (!x) return;
@@ -370,8 +395,25 @@
 
     function safeParseJSON(text) {
       if (!text) return null;
-      const cleaned = text.trim().replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-      try { return JSON.parse(cleaned); } catch { return null; }
+      let cleaned = text.trim();
+
+      // 1. Remove optional Markdown code fences
+      cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+
+      // 2. Aggressively find and crop to the first { and last }
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) return null;
+
+      cleaned = cleaned.substring(start, end + 1);
+
+      try {
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error('JSON Parsing Error:', e.message);
+        console.error('Failing JSON String (start):', cleaned.substring(0, 100));
+        return null;
+      }
     }
 
     async function callResponses_Precheck(apiKey, imageDataUrl){
@@ -381,12 +423,15 @@
         properties: { is_stool: {type:"boolean"}, notes:{type:"string"} },
         required: ["is_stool","notes"]
       };
+
+      const systemInstruction = "You determine if the image clearly contains feces (stool) and is suitable for analysis. Respond STRICTLY with JSON matching the schema. is_stool should be true if it clearly shows human feces.";
+
       const body = {
         model: "gpt-4o-mini",
         temperature: 0,
-        max_output_tokens: 120,
+        max_output_tokens: 256, // Erhöht zur Stabilisierung
         input: [
-          { role: "system", content: [{ type: "input_text", text: "You strictly decide if the image is a human stool photo. Return only JSON per schema." }]},
+          { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
           { role: "user", content: [
             { type: "input_image", image_url: imageDataUrl },
             { type: "input_text", text: "Return JSON only." }
@@ -394,7 +439,11 @@
         ],
         text: { format: { type:"json_schema", name:"StoolPrecheck", strict:true, schema } }
       };
-      const res = await fetch("https://api.openai.com/v1/responses", {
+
+      const API_URL = "https://api.openai.com/v1/responses";
+      console.log('Precheck URL String:', API_URL);
+
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
         body: JSON.stringify(body)
@@ -471,7 +520,11 @@
         ],
         text: { format: { type:"json_schema", name:"StoolVisualExtractionV1", strict:true, schema } }
       };
-      const res = await fetch("https://api.openai.com/v1/responses", {
+
+      const API_URL = "https://api.openai.com/v1/responses";
+      console.log('Extraktion URL String:', API_URL);
+
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
         body: JSON.stringify(body)
@@ -595,7 +648,7 @@
         els.redFlags.classList.remove('hidden');
         els.redFlags.innerHTML = `
           <div role="alert" class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
