@@ -236,23 +236,27 @@
     let activeIndex = -1;
     let lastPrecheck = null;
 
-    // ---------- Ausgewählte konkrete Produkte (Amazon.de) ----------
-    // KH → Alpha-Galactosidase; Fett → Pankreatin/Lipase; Protein → Bromelain (GDU)
+    // ---------- Statische konkrete Produkte (Amazon.de) ----------
+    // Kategorien:
+    // - KH (Kohlenhydrate): Alpha-Galactosidase
+    // - Fett: Pankreatin/Lipase
+    // - Protein: Bromelain (hoher GDU-Wert)
+    // Die Links werden direkt als https://www.amazon.de/dp/ASIN (+ ?tag=...) erzeugt.
     const PRODUCTS = {
       carb: {
         title: "sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
-        asin: "B07PTKTLMJ", // KH/Blähungen
+        asin: "B07PTKTLMJ",
         note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte)."
       },
       fat: {
         title: "PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
-        asin: "B00ELU7SSM", // 20.000 Ph.Eur.-Einheiten Lipase/Kapsel
+        asin: "B00ELU7SSM",
         note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten."
       },
       protein: {
         title: "Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
-        asin: "B09C1XV3P3", // hoher GDU-Wert
-        note: "Bei sehr eiweißlastigen Speisen / strengem Geruch."
+        asin: "B09C1XV3P3",
+        note: "Bei eiweißlastigen Speisen / sehr strengem Geruch."
       }
     };
 
@@ -602,8 +606,8 @@
       const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
 
       const blocks = [];
-      if (p.carb >= 40) blocks.push({ key:'carb', ...PRODUCTS.carb });
-      if (p.fat >= 40)  blocks.push({ key:'fat',  ...PRODUCTS.fat  });
+      if (p.carb >= 40)    blocks.push({ key:'carb',    ...PRODUCTS.carb });
+      if (p.fat >= 40)     blocks.push({ key:'fat',     ...PRODUCTS.fat  });
       if (p.protein >= 40) blocks.push({ key:'protein', ...PRODUCTS.protein });
 
       if (!blocks.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
@@ -703,6 +707,7 @@
       const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
       roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // FG
     }
+  
     function roundedRect(ctx, x, y, w, h, r, color){
       ctx.beginPath();
       ctx.moveTo(x+r, y);
@@ -843,7 +848,7 @@
         additionalProperties: false,
         required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
         properties: {
-          summary: { type: "string" },  // wir überschreiben textlich lokal
+          summary: { type: "string" },  // wird lokal überschrieben
           vision_quality: { type: "string", enum:["good","fair","poor"] },
           bristol: { type: "integer", minimum:1, maximum:7 },
           feature_flags: {
