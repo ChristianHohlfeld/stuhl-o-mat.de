@@ -16,10 +16,11 @@
 
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    .pixel { image-rendering: pixelated; }
-    /* Kleine, zentrierte Vorschau: max 220px Breite, egal wie groß der Bildschirm ist */
-    #previewBox { width: 220px; margin-left: auto; margin-right: auto; }
-    #previewPix, #preview { width: 220px; height: auto; }
+    /* Kleine, zentrierte Vorschau */
+    #previewBox { width: 220px; margin-left: auto; margin-right: auto; position: relative; }
+    #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    /* Overlay-Toggle direkt AUF dem Canvas */
+    #overlayToggle { position: absolute; top: .5rem; right: .5rem; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -32,7 +33,7 @@
       <p class="text-base-content/70 mt-2">Einfache visuelle Auswertung. <strong>Keine Diagnose.</strong></p>
     </header>
 
-    <!-- Einstellungen (sehr kurz) -->
+    <!-- Einstellungen -->
     <section class="card bg-base-100 shadow mb-4">
       <div class="card-body gap-3">
         <div class="grid grid-cols-1 gap-3">
@@ -72,24 +73,20 @@
 
           <div class="mt-3 text-center">
             <button id="btnPick" class="btn btn-primary w-full">Bild auswählen</button>
-            <!-- Ein einzelnes Input -> Mobil zeigt Kamera ODER Galerie -->
             <input id="fileInput" type="file" accept="image/*" class="hidden" />
             <p class="text-xs text-base-content/60 mt-2">Tipp: gutes Licht, nicht zu weit weg.</p>
           </div>
 
           <div id="previewWrap" class="mt-4 hidden">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-base-content/70">Kleine Vorschau (Anzeige kann verpixelt sein; Analyse nutzt das Original)</span>
-              <button id="togglePixel" class="btn btn-ghost btn-xs">Verpixeln: AN</button>
-            </div>
-            <div id="previewBox" class="relative">
-              <canvas id="previewPix" class="rounded-lg shadow block"></canvas>
-              <img id="preview" class="rounded-lg shadow hidden" alt="Vorschau" />
+            <div class="text-sm text-base-content/70 text-center mb-2">Kleine Vorschau. Analyse nutzt immer das unveränderte Original.</div>
+            <div id="previewBox">
+              <canvas id="previewCanvas" aria-label="Vorschau"></canvas>
+              <button id="overlayToggle" class="btn btn-xs btn-neutral/80">Pixel: AN</button>
             </div>
           </div>
         </section>
 
-        <!-- Optionale Beobachtungen (eingeklappt) -->
+        <!-- Optionale Beobachtungen -->
         <section id="obsBox" class="mt-4 hidden">
           <details class="bg-base-200 rounded-lg p-3">
             <summary class="cursor-pointer select-none">Optionale Beobachtungen</summary>
@@ -128,13 +125,10 @@
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
-          <!-- Warnzeichen -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Werte: 3 einfache Balken -->
           <div id="bars" class="mt-4 space-y-3"></div>
 
-          <!-- Kurzer Text -->
           <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
           <!-- Empfehlungen & Kaufen -->
@@ -180,9 +174,8 @@
 
       previewWrap: document.getElementById('previewWrap'),
       previewBox: document.getElementById('previewBox'),
-      previewPix: document.getElementById('previewPix'),
-      preview: document.getElementById('preview'),
-      togglePixel: document.getElementById('togglePixel'),
+      previewCanvas: document.getElementById('previewCanvas'),
+      overlayToggle: document.getElementById('overlayToggle'),
 
       obsBox: document.getElementById('obsBox'),
       obsSticky: document.getElementById('obsSticky'),
@@ -207,33 +200,15 @@
     };
 
     // -------- State --------
-    let imageDataUrl = null;   // Original – wird für die Analyse genutzt
-    let pixelViewOn = true;    // Vorschau standardmäßig verpixelt
-    let loadedImg = null;      // HTMLImageElement für Vorschau-Rendern
+    let imageDataUrl = null;   // Original – für Analyse
+    let pixelViewOn = true;    // Vorschau: standardmäßig pixelig
+    let loadedImg = null;      // HTMLImageElement für Canvas-Rendering
 
-    // -------- Produkte (statisch, direkt /dp/ASIN) --------
+    // -------- Produkte (statisch, /dp/ASIN) --------
     const PRODUCTS = {
-      carb: {
-        key: "carb",
-        title: "sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
-        asin: "B07PTKTLMJ",
-        note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).",
-        subtitle: "KH-Enzyme"
-      },
-      fat: {
-        key: "fat",
-        title: "PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
-        asin: "B00ELU7SSM",
-        note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.",
-        subtitle: "Fett-Enzyme"
-      },
-      protein: {
-        key: "protein",
-        title: "Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
-        asin: "B09C1XV3P3",
-        note: "Bei eiweißlastigen Speisen / sehr strengem Geruch.",
-        subtitle: "Protein-Enzyme"
-      }
+      carb:    { key:"carb",    title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).", subtitle:"KH-Enzyme" },
+      fat:     { key:"fat",     title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)", asin:"B00ELU7SSM", note:"Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.", subtitle:"Fett-Enzyme" },
+      protein: { key:"protein", title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln", asin:"B09C1XV3P3", note:"Bei eiweißlastigen Speisen / sehr strengem Geruch.", subtitle:"Protein-Enzyme" }
     };
 
     // -------- Init --------
@@ -252,8 +227,11 @@
       els.btnPick.addEventListener('click', ()=> els.fileInput.click());
       els.fileInput.addEventListener('change', onFileChange);
 
-      els.togglePixel.addEventListener('click', togglePixelPreview);
-      window.addEventListener('resize', ()=> { if (pixelViewOn && loadedImg) drawPixelPreview(loadedImg); });
+      // Toggle direkt AUF dem Canvas + auf dem Overlay-Button
+      els.previewCanvas.addEventListener('click', togglePixelPreview);
+      els.overlayToggle.addEventListener('click', (e)=>{ e.stopPropagation(); togglePixelPreview(); });
+
+      window.addEventListener('resize', ()=> { if (loadedImg) drawPreview(); });
 
       els.analyze.addEventListener('click', onAnalyze);
       els.reset.addEventListener('click', resetUI);
@@ -279,24 +257,20 @@
       imageDataUrl = await fileToDataURL(f).catch(()=> null);
       if (!imageDataUrl){ toast('Konnte das Bild nicht laden.'); return; }
 
-      els.preview.src = imageDataUrl;
-
       loadedImg = new Image();
       loadedImg.crossOrigin = 'anonymous';
       loadedImg.src = imageDataUrl;
       await loadedImg.decode();
 
+      pixelViewOn = true;
+      els.overlayToggle.textContent = 'Pixel: AN';
+
       els.previewWrap.classList.remove('hidden');
       els.obsBox.classList.remove('hidden');
       els.results.classList.add('hidden');
+      drawPreview();
 
-      pixelViewOn = true;
-      els.preview.classList.add('hidden');
-      els.previewPix.classList.remove('hidden');
-      els.togglePixel.textContent = 'Verpixeln: AN';
-      drawPixelPreview(loadedImg);
-
-      e.target.value = '';
+      e.target.value = ''; // Reset für erneute Auswahl
     }
 
     function fileToDataURL(file){
@@ -309,49 +283,46 @@
     }
 
     function togglePixelPreview(){
-      if (!imageDataUrl) return;
+      if (!imageDataUrl || !loadedImg) return;
       pixelViewOn = !pixelViewOn;
-      if (pixelViewOn){
-        els.preview.classList.add('hidden');
-        els.previewPix.classList.remove('hidden');
-        els.togglePixel.textContent = 'Verpixeln: AN';
-        if (loadedImg) drawPixelPreview(loadedImg);
-      } else {
-        els.previewPix.classList.add('hidden');
-        els.preview.classList.remove('hidden');
-        els.togglePixel.textContent = 'Verpixeln: AUS';
-      }
+      els.overlayToggle.textContent = pixelViewOn ? 'Pixel: AN' : 'Pixel: AUS';
+      drawPreview();
     }
 
-    // **Kleine, stärker verpixelte Vorschau**
-    function drawPixelPreview(img){
-      const canvas = els.previewPix;
+    // Ein Canvas, zwei Modi: pixelig vs. klar – immer nur Anzeige, Analyse bleibt unverändert.
+    function drawPreview(){
+      const canvas = els.previewCanvas;
+      const ctx = canvas.getContext('2d');
+      const img = loadedImg;
+      if (!img) return;
 
-      // Feste Zielbreite für kleine Vorschau
-      const targetW = 220; // immer klein
+      const targetW = 220; // feste Vorschaubreite
       const ratio = img.naturalHeight / img.naturalWidth;
       const targetH = Math.max(1, Math.round(targetW * ratio));
 
       canvas.width = targetW;
       canvas.height = targetH;
+      ctx.clearRect(0,0,targetW,targetH);
 
-      // Große Blockgröße => stärkere Verpixelung
-      const pixelSize = 18; // kräftig verpixelt
+      if (!pixelViewOn){
+        // KLAR: normales Skalieren mit Glättung
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        return;
+      }
+
+      // PIXELIG: stärker verpixeln
+      const pixelSize = 18; // größere Blöcke → grober
       const smallW = Math.max(10, Math.round(targetW / pixelSize));
       const smallH = Math.max(10, Math.round(targetH / pixelSize));
 
       const small = document.createElement('canvas');
       small.width = smallW; small.height = smallH;
       const sctx = small.getContext('2d');
-
-      // Runterskalieren mit Glättung
       sctx.imageSmoothingEnabled = true;
       sctx.drawImage(img, 0, 0, smallW, smallH);
 
-      // Hochskalieren ohne Glättung -> Pixel-Effekt
-      const ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0,0,canvas.width, canvas.height);
       ctx.drawImage(small, 0, 0, smallW, smallH, 0, 0, targetW, targetH);
     }
 
@@ -364,7 +335,6 @@
     function resetUI(){
       imageDataUrl = null;
       loadedImg = null;
-      els.preview.src = '';
       els.previewWrap.classList.add('hidden');
       els.obsSticky.checked = false;
       els.obsSmelly.checked = false;
@@ -384,7 +354,7 @@
 
       setLoading(true, 'Bild wird geprüft…');
       try {
-        // 1) Vorprüfung (großzügig)
+        // 1) Vorprüfung
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const ptxt = extractJSONText(pre);
         const pobj = safeParseJSON(ptxt);
@@ -462,6 +432,7 @@
       }
     }
 
+    // -------- Empfehlungen (Top + weitere) --------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
@@ -557,7 +528,6 @@
     function readPercents(){
       const nodes = els.bars.querySelectorAll('progress');
       const v = i => nodes[i] ? Number(nodes[i].value||0) : 0;
-      // Reihenfolge: KH, Protein, Fett
       return { carb: v(0), protein: v(1), fat: v(2) };
     }
 
@@ -569,8 +539,8 @@
       img.src = imageDataUrl;
       await img.decode();
 
-      // Stärker verpixelt, quadratisch 128×128
-      const S = 12; // kleine Quelle -> grobe Pixel
+      // Verpixeln (stark), quadratisch 128×128
+      const S = 12; // sehr grobe Quelle
       const side = 128;
 
       const small = document.createElement('canvas');
