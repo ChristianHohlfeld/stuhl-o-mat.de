@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision</title>
+  <title>Stuhl ANALyze – Vision (GPT-5 · Responses API)</title>
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,7 +23,7 @@
   <div class="container mx-auto max-w-3xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
       <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhl <span class="tracking-tight">ANALyze</span></h1>
-      <p class="text-base-content/70 mt-2">Echte Vision-Analyse + optionale Beobachtungen. Keine Diagnose.</p>
+      <p class="text-base-content/70 mt-2">Echte Vision-Analyse (GPT-5) + optionale Beobachtungen. Keine Diagnose.</p>
     </header>
 
     <!-- Top: API Key & Affiliate Tag -->
@@ -33,7 +33,7 @@
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
             <div class="join w-full">
-              <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" />
+              <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
               <button id="toggleKey" class="btn join-item" type="button">👁️</button>
             </div>
             <div class="label"><span class="label-text-alt">Lokal gespeichert (localStorage).</span></div>
@@ -110,7 +110,7 @@
           <h2 class="card-title justify-center">Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span id="modeBadge" class="badge badge-success">🧠 Vision-Analyse</span>
+            <span id="modeBadge" class="badge badge-success">🧠 GPT-5 Vision-Analyse</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
@@ -271,67 +271,46 @@
     }
 
     function setLoading(on, msg='Analyse läuft…') {
-      console.log(`--- Ladezustand: ${on} | Nachricht: ${msg} ---`);
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
       els.analyze.disabled = on;
     }
 
     async function onAnalyze(){
-      console.log('--- ANALYZE START ---');
       const key = els.apiKey.value.trim();
-      console.log('API Key vorhanden:', !!key);
       if (!key) { toast('Bitte zuerst den OpenAI API-Key oben eingeben.'); return; }
-      console.log('Bild geladen:', activeIndex >= 0);
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
       // Vorprüfung
       setLoading(true, 'Validierung des Bildes…');
       try {
-        console.log('Starte Precheck API-Aufruf...');
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const txt = extractJSONText(pre);
-        console.log('Precheck Roh-Antwort-Text:', txt.substring(0, 100) + '...');
         const obj = safeParseJSON(txt);
-
-        if (!obj) {
-          console.error('Vorprüfung: Parsing Fehler. Text:', txt);
-          throw new Error('Vorprüfung lieferte kein valides JSON. (siehe Konsole)');
-        }
+        if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
         if (!obj.is_stool) {
           setLoading(false);
-          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen. (KI hat abgelehnt)');
+          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen.');
           return;
         }
-        console.log('Precheck erfolgreich. is_stool:', obj.is_stool);
       } catch (e) {
-        console.error('Validierung fehlgeschlagen (Catch Block):', e);
-        const errorText = e.message.includes('valides JSON') ? e.message : `Fehler: ${e.message.substring(0, 80)}...`;
         setLoading(false);
-        toast(`Validierung fehlgeschlagen: ${errorText}`);
+        toast(`Validierung fehlgeschlagen: ${limitErr(e)}`);
         return;
       }
 
       // Feature-Extraktion
-      setLoading(true, 'Echte Vision-Analyse…');
+      setLoading(true, 'Vision-Analyse…');
       let visionObj;
       try {
-        console.log('Starte Feature-Extraktion API-Aufruf...');
         const res = await callResponses_Extract(key, imageDataUrl);
         const txt = extractJSONText(res);
-        console.log('Extraktion Roh-Antwort-Text:', txt.substring(0, 100) + '...');
         visionObj = safeParseJSON(txt);
-        if (!visionObj) {
-           console.error('Extraktion: Parsing Fehler. Text:', txt);
-           throw new Error('Modell lieferte kein valides JSON. (siehe Konsole)');
-        }
-        console.log('Extraktion erfolgreich. Bristol:', visionObj.bristol);
+        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
       } catch (e) {
-        console.error('Analyse fehlgeschlagen (Catch Block):', e);
-        const errorText = e.message.includes('valides JSON') ? e.message : `Fehler: ${e.message.substring(0, 80)}...`;
         setLoading(false);
-        toast(`Analyse fehlgeschlagen: ${errorText}`);
+        toast(`Analyse fehlgeschlagen: ${limitErr(e)}`);
         return;
       }
 
@@ -358,7 +337,6 @@
       setLoading(false);
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 80);
-      console.log('--- ANALYZE END ---');
     }
 
     function resetResults(){
@@ -375,11 +353,16 @@
     }
 
     // ---------- OpenAI Responses API ----------
+    // Notes:
+    // - Uses Responses API with 'input_text' and 'input_image' items
+    // - Structured Outputs via text.format { type: "json_schema", strict: true }
+    // - No temperature / max token overrides (defaults)
+
     function extractJSONText(resp) {
-      // Prioritize the output_text field for JSON output
+      // Prefer the convenience field if present
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
 
-      // Fallback: concatenate all text parts
+      // Fallback: walk response.output
       const texts = [];
       (function walk(x){
         if (!x) return;
@@ -397,23 +380,23 @@
       if (!text) return null;
       let cleaned = text.trim();
 
-      // 1. Remove optional Markdown code fences
+      // Remove optional Markdown fences
       cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
 
-      // 2. Aggressively find and crop to the first { and last }
+      // Crop to first { ... last }
       const start = cleaned.indexOf('{');
       const end = cleaned.lastIndexOf('}');
       if (start === -1 || end === -1 || end < start) return null;
 
       cleaned = cleaned.substring(start, end + 1);
 
-      try {
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.error('JSON Parsing Error:', e.message);
-        console.error('Failing JSON String (start):', cleaned.substring(0, 100));
-        return null;
-      }
+      try { return JSON.parse(cleaned); }
+      catch { return null; }
+    }
+
+    function limitErr(e) {
+      const s = (e && (e.message || String(e))) || 'Unbekannter Fehler';
+      return s.length > 260 ? s.slice(0,260) + '…' : s;
     }
 
     async function callResponses_Precheck(apiKey, imageDataUrl){
@@ -424,12 +407,12 @@
         required: ["is_stool","notes"]
       };
 
-      const systemInstruction = "You determine if the image clearly contains feces (stool) and is suitable for analysis. Respond STRICTLY with JSON matching the schema. is_stool should be true if it clearly shows human feces.";
+      const systemInstruction =
+        "You determine if the image clearly contains human stool and is suitable for generic visual analysis. " +
+        "Return STRICT JSON per schema. Be conservative.";
 
       const body = {
-        model: "gpt-4o-mini",
-        temperature: 0,
-        max_output_tokens: 256, // Erhöht zur Stabilisierung
+        model: "gpt-5",
         input: [
           { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
           { role: "user", content: [
@@ -441,14 +424,15 @@
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
-      console.log('Precheck URL String:', API_URL);
-
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok){ throw new Error(await res.text()); }
+      if (!res.ok){
+        const t = await res.text().catch(()=> '');
+        throw new Error(t || ('HTTP ' + res.status));
+      }
       return await res.json();
     }
 
@@ -498,19 +482,19 @@
           }
         }
       };
+
       const instructions = [
         "You are a careful vision assistant.",
         "Identify ONLY what is visually present; do not invent smell or symptoms.",
         "Fill all feature_flags as booleans from the image.",
         "Choose Bristol 1..7.",
-        "If soft/mushy (Bristol 6) or watery (Bristol 7), reflect that via bristol and flags (many_small_fragments / watery_liquid).",
+        "If soft/mushy (Bristol 6) or watery (Bristol 7), reflect that via bristol and flags.",
         "Set vision_quality = good/fair/poor by lighting/focus/obstruction.",
         "Mark red_flags if obvious red blood or tarry black."
       ].join(" ");
+
       const body = {
-        model: "gpt-4o-mini",
-        temperature: 0,
-        max_output_tokens: 900,
+        model: "gpt-5",
         input: [
           { role:"system", content:[{ type:"input_text", text: instructions }]},
           { role:"user", content:[
@@ -522,14 +506,15 @@
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
-      console.log('Extraktion URL String:', API_URL);
-
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok){ throw new Error(await res.text()); }
+      if (!res.ok){
+        const t = await res.text().catch(()=> '');
+        throw new Error(t || ('HTTP ' + res.status));
+      }
       return await res.json();
     }
 
@@ -566,7 +551,7 @@
       if (!f.formed_loglike && b >= 5) carb += 0.8;
       if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
 
-      // Nutzer-Beobachtungen (max ~10% Einfluss gesamt)
+      // Nutzer-Beobachtungen (kleiner Einfluss)
       if (obs.sticky) fat     += 0.5;
       if (obs.watery) carb    += 0.5;
       if (obs.smelly) protein += 1.5;
@@ -648,7 +633,7 @@
         els.redFlags.classList.remove('hidden');
         els.redFlags.innerHTML = `
           <div role="alert" class="alert alert-error">
-            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
