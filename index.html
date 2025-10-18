@@ -3,23 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Pie-Chart im Share)</title>
+  <title>Stuhl ANALyze – Vision (einfach · mobil · sharing)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Chart.js (UMD) für Tortendiagramm -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
+    :root { --card-pad: 1rem; }
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
-    canvas.share-preview { image-rendering: pixelated; } /* harte Verpixelung */
+    .pixel { image-rendering: pixelated; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -32,17 +31,17 @@
       <p class="text-base-content/70 mt-2">Vision-Auswertung (Deutsch) + optionale Beobachtungen. <strong>Keine Diagnose.</strong></p>
     </header>
 
-    <!-- Top: API Key, Modell & Affiliate Tag -->
+    <!-- Einstellungen -->
     <section class="card bg-base-100 shadow mb-6">
       <div class="card-body gap-3">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
             <div class="join w-full">
-              <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
-              <button id="toggleKey" class="btn join-item" type="button">👁️</button>
+              <input id="apiKey" type="password" inputmode="email" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
+              <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key anzeigen/ausblenden">👁️</button>
             </div>
-            <div class="label"><span class="label-text-alt">Wird lokal gespeichert (localStorage).</span></div>
+            <div class="label"><span class="label-text-alt">Lokal gespeichert (localStorage).</span></div>
           </label>
 
           <label class="form-control">
@@ -65,7 +64,7 @@
           <div class="form-control">
             <div class="label"><span class="label-text font-semibold">Sprache</span></div>
             <input class="input input-bordered" value="Deutsch (erzwungen)" disabled />
-            <div class="label"><span class="label-text-alt">KI-Antworten sind auf Deutsch fixiert.</span></div>
+            <div class="label"><span class="label-text-alt">Alle KI-Antworten sind auf Deutsch.</span></div>
           </div>
         </div>
 
@@ -75,34 +74,34 @@
       </div>
     </section>
 
-    <!-- Disclaimer -->
+    <!-- Hinweis -->
     <section class="alert alert-warning shadow mb-6">
-      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <div>
-        <div class="font-bold">Hinweis</div>
+        <div class="font-bold">Sicherheits-Hinweis</div>
         <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72h oder Gewichtsverlust bitte ärztlich abklären.</div>
       </div>
     </section>
 
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body">
-        <!-- Upload + Gallery -->
+        <!-- 1) Bild -->
         <section>
           <h2 class="card-title justify-center">Schritt 1: Bild wählen</h2>
           <div class="flex flex-col sm:flex-row items-center gap-3 mt-3">
             <input id="fileInput" type="file" accept="image/*" multiple capture="environment" class="file-input file-input-bordered w-full sm:w-auto" />
             <button id="openCamera" class="btn btn-ghost">Kamera öffnen</button>
           </div>
-          <p class="text-sm text-base-content/60 mt-2 text-center">Gutes Licht, neutraler Hintergrund. Keine Personen/Metadaten.</p>
+          <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">Gutes Licht, neutraler Hintergrund. Keine Personen/Metadaten.</p>
           <div id="gallery" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-4"></div>
           <div id="previewWrap" class="mt-4 hidden">
             <img id="preview" class="w-full rounded-lg shadow" alt="Vorschau" />
           </div>
         </section>
 
-        <!-- Quick Questions -->
+        <!-- 2) Beobachtungen -->
         <section id="questions" class="hidden mt-6">
           <h2 class="card-title justify-center">Schritt 2: Beobachtungen (optional)</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
@@ -121,61 +120,51 @@
           </div>
         </section>
 
-        <!-- Analyze -->
+        <!-- 3) Analyse -->
         <section class="mt-6 text-center">
-          <button id="analyze" class="btn btn-primary btn-lg">ANALyze</button>
+          <button id="analyze" class="btn btn-primary btn-lg w-full sm:w-auto">ANALyze</button>
           <div id="progress" class="mt-3 hidden">
             <span class="loading loading-spinner loading-md text-primary"></span>
             <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
           </div>
         </section>
 
-        <!-- Results -->
+        <!-- Ergebnis -->
         <section id="results" class="hidden mt-8">
           <h2 class="card-title justify-center">Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span id="modeBadge" class="badge badge-success">🧠 Vision-Analyse (Deutsch)</span>
+            <span class="badge badge-success">🧠 Vision-Analyse (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
-          <!-- Red Flags -->
+          <!-- Warnzeichen -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Bars -->
-          <div id="bars" class="mt-4 space-y-4"></div>
-
-          <!-- Pie-Chart -->
-          <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Tortendiagramm</h3>
-            <div class="bg-base-200 p-3 rounded-lg">
-              <canvas id="chartPie" height="180" aria-label="Tortendiagramm KH/Protein/Fett"></canvas>
-            </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">
-              Hinweis: <em>pH</em> lässt sich aus Fotos nicht zuverlässig ableiten. Dargestellt werden KH, Protein und Fett (Verdauungsprobleme).
-            </p>
+          <!-- Werte (einfach, klar) -->
+          <div id="bars" class="mt-4 space-y-4">
+            <!-- dynamisch -->
           </div>
 
-          <!-- Summary -->
+          <!-- Kurzzusammenfassung -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
 
-          <!-- Recs -->
+          <!-- Hinweise -->
           <div id="recs" class="mt-6 hidden">
             <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (nicht-medizinisch)</h3>
             <div id="recsWrap" class="space-y-3"></div>
           </div>
 
-          <!-- Share -->
+          <!-- Sharing -->
           <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Teilen (privat, verpixelt + Pie im Bild)</h3>
+            <h3 class="font-semibold text-center mb-2">Teilen (privat, kleines Bild)</h3>
             <div class="flex flex-wrap gap-2 justify-center">
-              <button id="btnShare" class="btn btn-primary btn-sm">Teilen (Web Share)</button>
-              <button id="btnDownload" class="btn btn-ghost btn-sm">Bild herunterladen</button>
+              <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
+              <button id="btnDownload" class="btn btn-ghost btn-sm">Download</button>
             </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN PNG mit verpixelter Vorschau <u>und</u> dem Pie-Chart (ohne EXIF).</p>
+            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN kleines PNG (verpixelte Vorschau + Werte-Balken, ohne EXIF).</p>
           </div>
 
-          <!-- Reset -->
           <div class="card-actions justify-center mt-6">
             <button id="reset" class="btn btn-ghost">Neue Analyse</button>
           </div>
@@ -183,7 +172,7 @@
       </div>
     </main>
 
-    <footer class="text-center mt-6 text-sm text-base-content/60">
+    <footer class="text-center mt-6 text-xs sm:text-sm text-base-content/60">
       &copy; 2025 – Konzept von Christian Heinrich Hohlfeld.
     </footer>
   </div>
@@ -214,7 +203,6 @@
       progressMsg: document.getElementById('progressMsg'),
 
       results: document.getElementById('results'),
-      modeBadge: document.getElementById('modeBadge'),
       qualityBadge: document.getElementById('qualityBadge'),
       redFlags: document.getElementById('redFlags'),
       bars: document.getElementById('bars'),
@@ -223,7 +211,6 @@
       recsWrap: document.getElementById('recsWrap'),
       reset: document.getElementById('reset'),
 
-      chartPie: document.getElementById('chartPie'),
       btnShare: document.getElementById('btnShare'),
       btnDownload: document.getElementById('btnDownload'),
     };
@@ -231,8 +218,7 @@
     // ---------- State ----------
     let images = []; // [{ dataUrl, name }]
     let activeIndex = -1;
-    let pieInstance = null; // Chart.js Pie
-    let lastPrecheck = null;  // für Badge/Unsicher
+    let lastPrecheck = null;
 
     // ---------- Init ----------
     (function init() {
@@ -257,8 +243,6 @@
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
-
-      initPie();
     })();
 
     function saveSettings() {
@@ -277,10 +261,11 @@
       el.className = `alert ${ok?'alert-success':'alert-error'} shadow`;
       el.innerHTML = `<span>${escapeHTML(msg)}</span>`;
       els.toasts.appendChild(el);
-      setTimeout(()=> el.remove(), 3800);
+      setTimeout(()=> el.remove(), 3600);
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
+    // ---------- Dateien ----------
     async function onFiles(e){
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
@@ -337,6 +322,7 @@
       els.analyze.disabled = on;
     }
 
+    // ---------- Analyse ----------
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
       const model = els.model.value.trim();
@@ -344,7 +330,6 @@
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
-      // 1) Vorprüfung (entschärft + Confidence)
       setLoading(true, 'Validierung des Bildes…');
       lastPrecheck = null;
       try {
@@ -354,52 +339,40 @@
         if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
         lastPrecheck = obj;
 
-        // Fail-open Regeln
-        let allow = false;
-        let markUncertain = false;
-        if (obj.is_stool === 'yes') {
-          allow = true;
-        } else if (obj.is_stool === 'uncertain' && Number(obj.confidence) >= 0.5) {
-          allow = true; markUncertain = true;
-        }
+        let allow = false, markUncertain = false;
+        if (obj.is_stool === 'yes') allow = true;
+        else if (obj.is_stool === 'uncertain' && Number(obj.confidence) >= 0.5) { allow = true; markUncertain = true; }
 
         if (!allow) {
-          // 2) Zweitprüfung
           setLoading(true, 'Zweitprüfung…');
           const res2 = await callResponses_Extract(key, model, imageDataUrl);
           const txt2 = extractJSONText(res2);
           const vo2 = safeParseJSON(txt2);
           if (!vo2) throw new Error('Zweitprüfung: Modell lieferte kein valides JSON.');
-
           if (stoolLikeFromExtract(vo2)) {
             await renderFinal(vo2, { uncertain: true });
-            setLoading(false);
-            return;
+            setLoading(false); return;
           } else {
             setLoading(false);
-            toast('Bild wurde als „kein Stuhl“ eingestuft. Bitte ein besseres Foto: mehr Licht, weniger Wasser/Spiegelung, näher ran.', false);
+            toast('Bild wurde als „kein Stuhl“ eingestuft. Bitte besseres Foto: mehr Licht, weniger Wasser/Spiegelung, näher ran.');
             return;
           }
-        } else {
-          // 3) Normale Extraktion
-          setLoading(true, 'Vision-Analyse…');
-          const res = await callResponses_Extract(key, model, imageDataUrl);
-          const txt = extractJSONText(res);
-          const visionObj = safeParseJSON(txt);
-          if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
-          await renderFinal(visionObj, { uncertain: markUncertain });
-          setLoading(false);
-          return;
         }
+
+        setLoading(true, 'Vision-Analyse…');
+        const res = await callResponses_Extract(key, model, imageDataUrl);
+        const txt3 = extractJSONText(res);
+        const visionObj = safeParseJSON(txt3);
+        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
+        await renderFinal(visionObj, { uncertain: markUncertain });
+        setLoading(false);
       } catch (e) {
         setLoading(false);
         toast(`Analyse fehlgeschlagen: ${limitErr(e)}`);
-        return;
       }
     }
 
     async function renderFinal(visionObj, opts={ uncertain:false }){
-      // Scoring
       const observations = {
         sticky: !!els.obsSticky.checked,
         smelly: !!els.obsSmelly.checked,
@@ -407,7 +380,6 @@
       };
       const { percents, rationale, normalNote } = computeScoresFromFeatures(visionObj, observations);
 
-      // Qualität + Unsicherheits-Badge
       const q = (visionObj.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
       els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.uncertain ? ' · unsicher' : '');
@@ -418,9 +390,6 @@
       renderRedFlags(visionObj.red_flags);
       const sum = (visionObj.summary || '').trim();
       els.summary.textContent = [sum, normalNote, rationale].filter(Boolean).join(' ');
-
-      // Pie-Chart aktualisieren: Reihenfolge KH, Protein, Fett
-      updatePie({ kh: percents.carb, protein: percents.protein, fett: percents.fat });
 
       renderRecs(percents);
 
@@ -453,14 +422,12 @@
       els.obsSmelly.checked = false;
       els.obsWatery.checked = false;
       lastPrecheck = null;
-      updatePie({ kh:0, protein:0, fett:0 });
     }
 
     // ---------- OpenAI Responses API ----------
-    // – Für input_image erwartet die API:
-    //   { type: "input_image", image_url: "<STRING-URL-ODER-DATA-URL>", detail: "high" }
-    // – Structured Outputs via text.format { type:"json_schema", strict:true }
-    // – Keine temperature/max_tokens gesetzt
+    // input_image erwartet STRING bei image_url (z. B. Data-URL), kein Objekt.
+    // Structured Outputs via text.format { type:"json_schema", strict:true }
+    // Keine temperature/max_tokens gesetzt.
 
     function extractJSONText(resp) {
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
@@ -520,7 +487,7 @@
             { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v2", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v3", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -603,7 +570,7 @@
             { type:"input_image", image_url: imageDataUrl, detail: "high" }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v2", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v3", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -619,7 +586,7 @@
       return await res.json();
     }
 
-    // ---------- Scoring (deterministisch, Bild-first) ----------
+    // ---------- Scoring ----------
     function computeScoresFromFeatures(visionObj, obs){
       const f = visionObj.feature_flags || {};
       const b = Number(visionObj.bristol || 0);
@@ -627,7 +594,7 @@
 
       let fat = 0, carb = 0, protein = 0;
 
-      // FETT – visuelle Marker
+      // FETT
       fat += f.oily_sheen           ? 3.0 : 0;
       fat += f.visible_fat_globules ? 2.8 : 0;
       fat += f.sticks_to_bowl       ? 2.4 : 0;
@@ -635,7 +602,7 @@
       fat += f.pale_clay_color      ? 2.0 : 0;
       if (colors.includes("yellow")) fat += 0.6;
 
-      // KH – visuelle Marker
+      // KH
       carb += f.watery_liquid        ? 3.0 : 0;
       carb += f.foamy_bubbles        ? 1.6 : 0;
       carb += f.undigested_fiber     ? 2.0 : 0;
@@ -643,16 +610,16 @@
       carb += f.mucus_excess         ? 0.8 : 0;
       carb += f.green_color          ? 0.7 : 0;
 
-      // PROTEIN – visuelle Marker (schwach)
+      // PROTEIN
       protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
 
-      // Bristol (rein visuell)
+      // Bristol
       if (b === 6) carb += 1.6;
       if (b === 7) carb += 2.6;
       if (!f.formed_loglike && b >= 5) carb += 0.8;
       if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
 
-      // Nutzer-Beobachtungen (kleiner Einfluss)
+      // Nutzerhinweise
       if (obs.sticky) fat     += 0.5;
       if (obs.watery) carb    += 0.5;
       if (obs.smelly) protein += 1.5;
@@ -665,7 +632,6 @@
         !f.red_blood && !f.black_tarry
       );
 
-      // Mapping auf 0..100 je Kategorie
       const fatPct     = clamp01(fat / 12.5) * 100;
       const carbPct    = clamp01(carb / 12.5) * 100;
       const proteinPct = clamp01(protein / 5.0) * 100;
@@ -676,7 +642,6 @@
         carb: Math.round(carbPct)
       };
 
-      // Rationale
       const why = [];
       if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.pale_clay_color || f.floats) {
         const bits = [
@@ -711,64 +676,33 @@
 
     function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
 
-    // ---------- Render ----------
+    // ---------- Anzeige ----------
     function renderBars(p){
       els.bars.innerHTML = '';
       const rows = [
-        { label:'Fett-Maldigestion',    val:p.fat,     cls:'progress-success' },
-        { label:'Protein-Maldigestion', val:p.protein, cls:'progress-info'    },
-        { label:'KH-Maldigestion',      val:p.carb,    cls:'progress-warning' }
+        { label:'KH (Kohlenhydrate)',  val:p.carb,    cls:'progress-warning' },
+        { label:'Protein',             val:p.protein, cls:'progress-info'    },
+        { label:'Fett',                val:p.fat,     cls:'progress-success' }
       ];
       rows.forEach(r=>{
         els.bars.insertAdjacentHTML('beforeend', `
-          <div>
-            <div class="flex justify-between text-sm mb-1"><span>${r.label}</span><span>${r.val}%</span></div>
-            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100"></progress>
+          <div class="bg-base-200 rounded-lg p-3">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-medium">${r.label}</span>
+              <span class="tabular-nums">${r.val}%</span>
+            </div>
+            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${r.val}"></progress>
           </div>
         `);
       });
     }
 
-    // ---------- Chart.js: PIE ----------
-    function initPie(){
-      const ctx = els.chartPie.getContext('2d');
-      pieInstance = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: ['KH', 'Protein', 'Fett (Verdauungsprobleme)'],
-          datasets: [{
-            data: [0,0,0]
-          }]
-        },
-        options: {
-          responsive: true,
-          animation: { duration: 300 },
-          plugins: {
-            legend: { display: true, position: 'bottom' },
-            tooltip: {
-              callbacks: {
-                label: (ctx)=> `${ctx.label}: ${ctx.parsed}%`
-              }
-            }
-          }
-        }
-      });
-    }
-
-    function updatePie(values){
-      if (!pieInstance) return;
-      const { kh=0, protein=0, fett=0 } = values || {};
-      pieInstance.data.datasets[0].data = [kh, protein, fett];
-      pieInstance.update();
-    }
-
-    // ---------- Red Flags & Recs ----------
     function renderRedFlags(red){
       if (red?.present) {
         els.redFlags.classList.remove('hidden');
         els.redFlags.innerHTML = `
           <div role="alert" class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
@@ -806,86 +740,62 @@
       });
     }
 
-    // ---------- Share (ein PNG: Pixel-Vorschau + Pie-Chart) ----------
-    async function createShareImageComposite(percents){
+    // ---------- Share-Bild (ein PNG: verpixelte Vorschau + kompakte Werte-Balken) ----------
+    async function createShareImage(percents){
       if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
 
-      // 1) Original als stark verpixelte Quadrat-Vorschau (128x128)
+      // Verpixelte Vorschau 128x128
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = images[activeIndex].dataUrl;
       await img.decode();
 
-      const small = document.createElement('canvas');
-      small.className = 'share-preview';
       const S = 16; // Pixelationsgrad
+      const small = document.createElement('canvas');
       small.width = S; small.height = S;
-      const sctx = small.getContext('2d');
+      const sctx = small.getContext('2d', { willReadFrequently: true });
       const side = Math.min(img.naturalWidth, img.naturalHeight);
       const sx = (img.naturalWidth - side) / 2;
       const sy = (img.naturalHeight - side) / 2;
       sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
 
       const pix = document.createElement('canvas');
-      pix.className = 'share-preview';
       pix.width = 128; pix.height = 128;
       const pctx = pix.getContext('2d');
       pctx.imageSmoothingEnabled = false;
       pctx.drawImage(small, 0, 0, S, S, 0, 0, pix.width, pix.height);
 
-      // 2) Snapshot des aktuellen Pie-Chart-Canvas
-      const chartCanvas = els.chartPie;
-      if (!chartCanvas) throw new Error('Pie-Chart nicht verfügbar.');
-      // Zielgröße für Chart im Share: 128 x 100 (skalieren)
-      const chartSnapW = 128, chartSnapH = 100;
-
-      // 3) End-Canvas anlegen (128 x (128 + 100 + Kopfzeile))
-      const HEADER = 24; // Titelstreifen
+      // End-Canvas: Header + 128 + Werte-Block
+      const HEADER = 22;
+      const VALUES_H = 62;
       const GAP = 4;
       const out = document.createElement('canvas');
       out.width = 128;
-      out.height = HEADER + pix.height + GAP + chartSnapH;
-      const octx = out.getContext('2d');
+      out.height = HEADER + 128 + GAP + VALUES_H;
+      const o = out.getContext('2d');
 
-      // Hintergrund hell
-      octx.fillStyle = '#F3F4F6';
-      octx.fillRect(0,0,out.width,out.height);
+      // Hintergrund
+      o.fillStyle = '#F3F4F6'; // base-200
+      o.fillRect(0,0,out.width,out.height);
 
-      // Kopfzeile
-      octx.fillStyle = '#111827';
-      octx.fillRect(0,0,out.width,HEADER);
-      octx.fillStyle = '#F9FAFB';
-      octx.font = 'bold 11px Inter, system-ui, sans-serif';
-      octx.fillText('Stuhl ANALyze – Kurzansicht', 6, 16);
+      // Header
+      o.fillStyle = '#111827'; // slate-900
+      o.fillRect(0,0,out.width,HEADER);
+      o.fillStyle = '#F9FAFB'; // slate-50
+      o.font = 'bold 11px Inter, system-ui, sans-serif';
+      o.fillText('Stuhl ANALyze', 6, 15);
 
-      // Verpixeltes Bild platzieren
-      octx.imageSmoothingEnabled = false;
-      octx.drawImage(pix, 0, HEADER, 128, 128);
+      // Verpixeltes Bild
+      o.imageSmoothingEnabled = false;
+      o.drawImage(pix, 0, HEADER, 128, 128);
 
-      // Werte-Overlay auf dem Pixelbild
-      octx.imageSmoothingEnabled = true;
-      octx.globalAlpha = 0.8;
-      octx.fillStyle = '#111827';
-      octx.fillRect(0, HEADER + 128 - 38, 128, 38);
-      octx.globalAlpha = 1;
-      octx.fillStyle = '#F9FAFB';
-      octx.font = '10px Inter, system-ui, sans-serif';
-      octx.fillText(`KH ${percents.carb}%`, 6, HEADER + 128 - 24);
-      octx.fillText(`Protein ${percents.protein}%`, 6, HEADER + 128 - 12);
-      octx.fillText(`Fett ${percents.fat}%`, 78, HEADER + 128 - 24);
+      // Werte-Block
+      o.imageSmoothingEnabled = true;
+      const top = HEADER + 128 + GAP;
+      drawValueRow(o, 'KH', percents.carb, 6, top + 6);
+      drawValueRow(o, 'Protein', percents.protein, 6, top + 24);
+      drawValueRow(o, 'Fett', percents.fat, 6, top + 42);
 
-      // Pie-Chart unten hinein rendern (skaliert)
-      // Trick: Chart direkt in Zielcanvas zeichnen (drawImage auf Canvas)
-      const ch = chartCanvas;
-      octx.imageSmoothingEnabled = true;
-      octx.drawImage(ch, 0, 0, ch.width, ch.height, 0, HEADER + 128 + GAP, chartSnapW, chartSnapH);
-
-      // Hinweiszeile unter dem Pie (klein)
-      octx.fillStyle = '#6B7280';
-      octx.font = '9px Inter, system-ui, sans-serif';
-      octx.fillText('pH nicht aus Foto ableitbar', 6, HEADER + 128 + GAP + chartSnapH - 4);
-
-      // PNG erzeugen
       return new Promise((resolve, reject)=>{
         out.toBlob(b=>{
           if (!b) return reject(new Error('Bild konnte nicht erzeugt werden.'));
@@ -894,18 +804,43 @@
       });
     }
 
+    // Kleine Kapsel-Balken im Share-Bild
+    function drawValueRow(ctx, label, val, x, y){
+      const w = 116, h = 8, r = 4;
+      // Label + Prozent
+      ctx.fillStyle = '#111827';
+      ctx.font = '10px Inter, system-ui, sans-serif';
+      const pct = isFinite(val) ? Math.round(val) : 0;
+      ctx.fillText(`${label} ${pct}%`, x, y-2);
+
+      // Hintergrund-Kapsel
+      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // slate-200
+      // Vordergrund-Kapsel
+      const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
+      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // blau
+    }
+
+    function roundedRect(ctx, x, y, w, h, r, color){
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
     async function onShare(){
       try{
-        const p = readPercentsFromBars();
-        // Sicherheit: Pie auf aktuelle Werte bringen (falls Share direkt gedrückt)
-        updatePie({ kh: p.carb, protein: p.protein, fett: p.fat });
-
-        const blob = await createShareImageComposite(p);
+        const p = readPercentsFromDOM();
+        const blob = await createShareImage(p);
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Stuhl ANALyze – Kurzansicht',
-            text: `Vorschau mit Pie: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+            text: `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
         } else {
@@ -919,9 +854,8 @@
 
     async function onDownload(){
       try{
-        const p = readPercentsFromBars();
-        updatePie({ kh: p.carb, protein: p.protein, fett: p.fat });
-        const blob = await createShareImageComposite(p);
+        const p = readPercentsFromDOM();
+        const blob = await createShareImage(p);
         downloadBlob(blob, 'analyse.png');
         toast('Bild heruntergeladen.', true);
       } catch(e){
@@ -929,10 +863,11 @@
       }
     }
 
-    function readPercentsFromBars(){
+    function readPercentsFromDOM(){
       const nodes = els.bars.querySelectorAll('progress');
       const get = (i)=> nodes[i] ? Number(nodes[i].value || 0) : 0;
-      return { fat:get(0), protein:get(1), carb:get(2) };
+      // Reihenfolge in UI: KH, Protein, Fett
+      return { carb:get(0), protein:get(1), fat:get(2) };
     }
 
     function downloadBlob(blob, filename){
@@ -944,6 +879,10 @@
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
+    // ---------- Utils ----------
+    function showQuestions(show) { els.questions.classList.toggle('hidden', !show); }
+
+    // END
   </script>
 </body>
 </html>
