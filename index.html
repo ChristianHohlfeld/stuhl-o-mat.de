@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze</title>
+  <title>Stuhl ANALyze – Vision (No-Fake)</title>
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,28 +14,29 @@
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
-    .code { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; }
   </style>
 </head>
 <body class="bg-base-200">
-
   <!-- Toasts -->
   <div id="toasts" class="toast toast-top toast-center z-50"></div>
 
   <div class="container mx-auto max-w-3xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
       <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhl <span class="tracking-tight">ANALyze</span></h1>
-      <p class="text-base-content/70 mt-2">Echte Bildanalyse (Vision) + optionale Beobachtungen. Keine Diagnose.</p>
+      <p class="text-base-content/70 mt-2">Echte Vision-Analyse + optionale Beobachtungen. Keine Diagnose.</p>
     </header>
 
-    <!-- Top Bar: API Key & Affiliate Tag -->
+    <!-- Top: API Key & Affiliate Tag -->
     <section class="card bg-base-100 shadow mb-6">
       <div class="card-body gap-3">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
-            <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered w-full" />
-            <div class="label"><span class="label-text-alt">Wird nur lokal gespeichert (localStorage).</span></div>
+            <div class="join w-full">
+              <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" />
+              <button id="toggleKey" class="btn join-item" type="button">👁️</button>
+            </div>
+            <div class="label"><span class="label-text-alt">Lokal gespeichert (localStorage).</span></div>
           </label>
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">Affiliate-Tag (.de)</span></div>
@@ -51,16 +52,17 @@
 
     <!-- Disclaimer -->
     <section class="alert alert-warning shadow mb-6">
-      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
       <div>
         <div class="font-bold">Hinweis</div>
-        <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72h oder Gewichtsverlust &rarr; ärztliche Abklärung.</div>
+        <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72h oder Gewichtsverlust bitte ärztlich abklären.</div>
       </div>
     </section>
 
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body">
-
         <!-- Upload + Gallery -->
         <section>
           <h2 class="card-title justify-center">Schritt 1: Bild wählen</h2>
@@ -69,9 +71,7 @@
             <button id="openCamera" class="btn btn-ghost">Kamera öffnen</button>
           </div>
           <p class="text-sm text-base-content/60 mt-2 text-center">Gutes Licht, neutraler Hintergrund. Keine Personen/Metadaten.</p>
-
           <div id="gallery" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-4"></div>
-
           <div id="previewWrap" class="mt-4 hidden">
             <img id="preview" class="w-full rounded-lg shadow" alt="Vorschau" />
           </div>
@@ -83,7 +83,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
             <label class="label cursor-pointer justify-start gap-3">
               <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Klebrig? (Hinweis auf Fett)</span>
+              <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
             </label>
             <label class="label cursor-pointer justify-start gap-3">
               <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
@@ -109,13 +109,16 @@
         <section id="results" class="hidden mt-8">
           <h2 class="card-title justify-center">Ergebnis</h2>
 
+          <div class="mb-2 text-sm text-center">
+            <span id="modeBadge" class="badge badge-success">🧠 Vision-Analyse</span>
+            <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
+          </div>
+
           <!-- Red Flags -->
-          <div id="redFlags" class="hidden mt-4"></div>
+          <div id="redFlags" class="hidden mt-2"></div>
 
           <!-- Bars -->
-          <div id="bars" class="mt-4 space-y-4">
-            <!-- populated dynamically -->
-          </div>
+          <div id="bars" class="mt-4 space-y-4"></div>
 
           <!-- Summary -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
@@ -144,6 +147,7 @@
     const els = {
       toasts: document.getElementById('toasts'),
       apiKey: document.getElementById('apiKey'),
+      toggleKey: document.getElementById('toggleKey'),
       amazonTag: document.getElementById('amazonTag'),
       saveSettings: document.getElementById('saveSettings'),
 
@@ -163,6 +167,8 @@
       progressMsg: document.getElementById('progressMsg'),
 
       results: document.getElementById('results'),
+      modeBadge: document.getElementById('modeBadge'),
+      qualityBadge: document.getElementById('qualityBadge'),
       redFlags: document.getElementById('redFlags'),
       bars: document.getElementById('bars'),
       summary: document.getElementById('summary'),
@@ -172,26 +178,97 @@
     };
 
     // ---------- State ----------
-    let images = []; // [{dataUrl, name}]
+    let images = []; // [{ dataUrl, name }]
     let activeIndex = -1;
 
-    // ---------- Init (load cached settings) ----------
+    // ---------- Init ----------
     (function init() {
       try {
-        els.apiKey.value = localStorage.getItem('openai_api_key') || '';
+        els.apiKey.value  = localStorage.getItem('openai_api_key') || '';
         els.amazonTag.value = localStorage.getItem('amazon_tag') || '';
       } catch {}
+      els.saveSettings.addEventListener('click', saveSettings);
+      els.toggleKey.addEventListener('click', ()=> {
+        els.apiKey.type = els.apiKey.type === 'password' ? 'text' : 'password';
+        els.toggleKey.textContent = (els.apiKey.type === 'password') ? '👁️' : '🙈';
+      });
+      els.apiKey.addEventListener('input', debounce(saveSettings, 300));
+      els.amazonTag.addEventListener('input', debounce(saveSettings, 300));
+
+      els.openCamera.addEventListener('click', ()=> els.fileInput.click());
+      els.fileInput.addEventListener('change', onFiles);
+      els.analyze.addEventListener('click', onAnalyze);
+      els.reset.addEventListener('click', resetResults);
     })();
 
-    // ---------- Helpers ----------
+    function saveSettings() {
+      try {
+        localStorage.setItem('openai_api_key', els.apiKey.value.trim());
+        localStorage.setItem('amazon_tag', els.amazonTag.value.trim());
+        toast('Einstellungen gespeichert', true);
+      } catch(e){ toast('Speichern fehlgeschlagen: ' + e.message); }
+    }
+
+    function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
     function toast(msg, ok=false) {
-      const div = document.createElement('div');
-      div.className = `alert ${ok ? 'alert-success' : 'alert-error'} shadow`;
-      div.innerHTML = `<span>${escapeHTML(msg)}</span>`;
-      els.toasts.appendChild(div);
-      setTimeout(() => div.remove(), 4000);
+      const el = document.createElement('div');
+      el.className = `alert ${ok?'alert-success':'alert-error'} shadow`;
+      el.innerHTML = `<span>${escapeHTML(msg)}</span>`;
+      els.toasts.appendChild(el);
+      setTimeout(()=> el.remove(), 3800);
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
+
+    async function onFiles(e){
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      images = [];
+      for (const f of files) {
+        const dataUrl = await fileToDataURL(f).catch(()=> null);
+        if (dataUrl) images.push({ dataUrl, name: f.name });
+      }
+      activeIndex = images.length ? 0 : -1;
+      renderGallery();
+      resetResults();
+      if (activeIndex >= 0) showQuestions(true);
+    }
+
+    function fileToDataURL(file){
+      return new Promise((res, rej)=>{
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+
+    function renderGallery(){
+      els.gallery.innerHTML = '';
+      images.forEach((img, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = `btn btn-ghost p-0 border rounded overflow-hidden ${idx===activeIndex?'ring-2 ring-primary':''}`;
+        btn.style.height = '72px';
+        btn.onclick = ()=> selectIndex(idx);
+        btn.innerHTML = `<img class="thumb w-[72px] h-[72px]" src="${img.dataUrl}" alt="Bild ${idx+1}" />`;
+        els.gallery.appendChild(btn);
+      });
+      if (activeIndex >= 0) {
+        els.preview.src = images[activeIndex].dataUrl;
+        els.previewWrap.classList.remove('hidden');
+      } else {
+        els.previewWrap.classList.add('hidden');
+      }
+    }
+
+    function selectIndex(i){
+      activeIndex = i;
+      renderGallery();
+    }
+
+    function showQuestions(show) {
+      els.questions.classList.toggle('hidden', !show);
+    }
 
     function setLoading(on, msg='Analyse läuft…') {
       els.progressMsg.textContent = msg;
@@ -199,55 +276,91 @@
       els.analyze.disabled = on;
     }
 
-    function showQuestions(show) {
-      els.questions.classList.toggle('hidden', !show);
-    }
+    async function onAnalyze(){
+      const key = els.apiKey.value.trim();
+      if (!key) { toast('Bitte zuerst den OpenAI API-Key oben eingeben.'); return; }
+      if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
+      const imageDataUrl = images[activeIndex].dataUrl;
 
-    function renderGallery() {
-      els.gallery.innerHTML = '';
-      images.forEach((img, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `btn btn-ghost p-0 border rounded overflow-hidden ${idx===activeIndex?'ring-2 ring-primary':''}`;
-        btn.style.height = '72px';
-        btn.onclick = () => selectIndex(idx);
-        btn.innerHTML = `<img class="thumb w-[72px] h-[72px]" src="${img.dataUrl}" alt="${escapeHTML(img.name||'Bild')}" />`;
-        els.gallery.appendChild(btn);
-      });
-      els.previewWrap.classList.toggle('hidden', activeIndex < 0);
-      if (activeIndex >= 0) {
-        els.preview.src = images[activeIndex].dataUrl;
-        showQuestions(true);
+      // Vorprüfung
+      setLoading(true, 'Validierung des Bildes…');
+      try {
+        const pre = await callResponses_Precheck(key, imageDataUrl);
+        const txt = extractJSONText(pre);
+        const obj = safeParseJSON(txt);
+        if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
+        if (!obj.is_stool) {
+          setLoading(false);
+          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen.');
+          return;
+        }
+      } catch (e) {
+        setLoading(false);
+        toast('Validierung fehlgeschlagen: ' + e.message);
+        return;
       }
+
+      // Feature-Extraktion
+      setLoading(true, 'Echte Vision-Analyse…');
+      let visionObj;
+      try {
+        const res = await callResponses_Extract(key, imageDataUrl);
+        const txt = extractJSONText(res);
+        visionObj = safeParseJSON(txt);
+        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
+      } catch (e) {
+        setLoading(false);
+        toast('Analyse fehlgeschlagen: ' + e.message);
+        return;
+      }
+
+      // Scoring (deterministisch, nur Bild + minimale User-Gewichtung)
+      const observations = {
+        sticky: !!els.obsSticky.checked,
+        smelly: !!els.obsSmelly.checked,
+        watery: !!els.obsWatery.checked
+      };
+      const { percents, rationale, normalNote } = computeScoresFromFeatures(visionObj, observations);
+
+      // Render
+      const q = (visionObj.vision_quality || 'fair').toLowerCase();
+      els.qualityBadge.textContent = 'Qualität: ' + q;
+      els.qualityBadge.classList.remove('hidden');
+      els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
+
+      renderBars(percents);
+      renderRedFlags(visionObj.red_flags);
+      const sum = (visionObj.summary || '').trim();
+      els.summary.textContent = [sum, normalNote, rationale].filter(Boolean).join(' ');
+      renderRecs(percents);
+
+      setLoading(false);
+      els.results.classList.remove('hidden');
+      setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 80);
     }
 
-    function selectIndex(idx) {
-      activeIndex = idx;
-      renderGallery();
+    function resetResults(){
+      els.results.classList.add('hidden');
+      els.redFlags.classList.add('hidden');
+      els.redFlags.innerHTML = '';
+      els.bars.innerHTML = '';
+      els.summary.textContent = '';
+      els.recs.classList.add('hidden');
+      els.recsWrap.innerHTML = '';
+      els.obsSticky.checked = false;
+      els.obsSmelly.checked = false;
+      els.obsWatery.checked = false;
     }
 
-    function dataURLFromFile(file) {
-      return new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = e => resolve(e.target.result);
-        r.onerror = reject;
-        r.readAsDataURL(file);
-      });
-    }
-
-    // Robustly extract JSON text from Responses API response
+    // ---------- OpenAI Responses API ----------
     function extractJSONText(resp) {
-      // Preferred convenience field:
-      if (typeof resp?.output_text === 'string' && resp.output_text.trim()) {
-        return resp.output_text.trim();
-      }
-      // Fallback: walk any text fields inside resp.output
+      if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
       const texts = [];
       (function walk(x){
-        if (x == null) return;
+        if (!x) return;
         if (typeof x === 'string') texts.push(x);
         else if (Array.isArray(x)) x.forEach(walk);
         else if (typeof x === 'object') {
-          // Some items have { type: 'output_text', text: '...' }
           if (typeof x.text === 'string') texts.push(x.text);
           for (const k in x) if (k !== 'text') walk(x[k]);
         }
@@ -257,321 +370,271 @@
 
     function safeParseJSON(text) {
       if (!text) return null;
-      const cleaned = text
-        .trim()
-        .replace(/^```json\s*/i,'')
-        .replace(/^```/,'')
-        .replace(/```$/,'')
-        .trim();
+      const cleaned = text.trim().replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
       try { return JSON.parse(cleaned); } catch { return null; }
     }
 
-    // ---------- Events ----------
-    els.saveSettings.addEventListener('click', ()=>{
-      try {
-        localStorage.setItem('openai_api_key', els.apiKey.value.trim());
-        localStorage.setItem('amazon_tag', els.amazonTag.value.trim());
-        toast('Einstellungen gespeichert', true);
-      } catch(e){ toast('Konnte nicht speichern: '+e.message); }
-    });
-
-    els.openCamera.addEventListener('click', ()=> els.fileInput.click());
-
-    els.fileInput.addEventListener('change', async (e)=>{
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      // load dataUrls
-      const arr = [];
-      for (const f of files) {
-        try {
-          const url = await dataURLFromFile(f);
-          arr.push({ dataUrl: url, name: f.name });
-        } catch {}
-      }
-      images = arr;
-      activeIndex = images.length ? 0 : -1;
-      renderGallery();
-      els.results.classList.add('hidden');
-    });
-
-    els.analyze.addEventListener('click', async ()=>{
-      const key = els.apiKey.value.trim();
-      if (!key) { toast('Bitte zuerst den OpenAI API-Key oben eingeben.'); return; }
-      if (activeIndex < 0 || !images[activeIndex]) { toast('Bitte zuerst ein Bild auswählen.'); return; }
-
-      const imageDataUrl = images[activeIndex].dataUrl;
-
-      // 1) Precheck: ist es wirklich Stuhl?
-      setLoading(true, 'Validierung des Bildes…');
-      let isStool = false;
-      try {
-        const pre = await callResponsesAPI_Precheck(key, imageDataUrl);
-        const txt = extractJSONText(pre);
-        const obj = safeParseJSON(txt);
-        if (!obj) throw new Error('Precheck-Antwort nicht lesbar.');
-        isStool = !!obj.is_stool;
-        if (!isStool) {
-          toast('Das Bild scheint kein Stuhlgang zu sein. Bitte ein geeignetes Bild wählen.');
-          setLoading(false);
-          return;
-        }
-      } catch (e) {
-        toast('Validierung fehlgeschlagen: '+ e.message);
-        setLoading(false);
-        return;
-      }
-
-      // 2) Hauptanalyse
-      setLoading(true, 'Echte KI-Analyse läuft…');
-      try {
-        const observations = {
-          sticky: !!els.obsSticky.checked,
-          smelly: !!els.obsSmelly.checked,
-          watery: !!els.obsWatery.checked
-        };
-        const res = await callResponsesAPI_Analyze(key, imageDataUrl, observations);
-
-        const text = extractJSONText(res);
-        const obj = safeParseJSON(text);
-        if (!obj) throw new Error('Modell lieferte kein valides JSON.');
-
-        renderResults(obj);
-        setLoading(false);
-
-      } catch (e) {
-        setLoading(false);
-        toast('Analyse fehlgeschlagen: '+ e.message);
-      }
-    });
-
-    els.reset.addEventListener('click', ()=>{
-      els.results.classList.add('hidden');
-      els.bars.innerHTML = '';
-      els.summary.textContent = '';
-      els.redFlags.classList.add('hidden');
-      els.redFlags.innerHTML = '';
-      els.recs.classList.add('hidden');
-      els.recsWrap.innerHTML = '';
-      els.obsSticky.checked = false;
-      els.obsSmelly.checked = false;
-      els.obsWatery.checked = false;
-    });
-
-    // ---------- API Calls (Responses API, Vision) ----------
-    // NOTE: Uses "text.format" with type "json_schema" (strict), temperature 0 (no seed in Responses API).
-    async function callResponsesAPI_Precheck(apiKey, imageDataUrl) {
+    async function callResponses_Precheck(apiKey, imageDataUrl){
       const schema = {
         type: "object",
         additionalProperties: false,
-        properties: {
-          is_stool: { type: "boolean" },
-          notes: { type: "string" }
-        },
+        properties: { is_stool: {type:"boolean"}, notes:{type:"string"} },
         required: ["is_stool","notes"]
       };
-
       const body = {
         model: "gpt-4o-mini",
+        temperature: 0,
+        max_output_tokens: 120,
         input: [
-          { role: "system", content: [
-            { type: "text", text: "You perform strict visual triage. Decide if the image is a photo of human stool (in bowl or on tissue). Return ONLY JSON per schema." }
-          ]},
+          { role: "system", content: [{ type: "text", text: "You strictly decide if the image is a human stool photo. Return only JSON per schema." }]},
           { role: "user", content: [
             { type: "input_image", image_url: imageDataUrl, detail: "low" },
-            { type: "input_text", text: "Is this a stool photo? Return JSON only." }
+            { type: "input_text", text: "Return JSON only." }
           ]}
         ],
-        temperature: 0,
-        max_output_tokens: 200,
-        text: {
-          // New structured outputs location (no deprecated response_format):
-          format: {
-            type: "json_schema",
-            name: "StoolPrecheck",
-            strict: true,
-            schema
-          }
-        }
+        text: { format: { type:"json_schema", name:"StoolPrecheck", strict:true, schema } }
       };
-
       const res = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + apiKey
-        },
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok) {
-        const t = await res.text().catch(()=> "");
-        throw new Error(t || (res.status + " Precheck HTTP-Fehler"));
-      }
+      if (!res.ok){ throw new Error(await res.text()); }
       return await res.json();
     }
 
-    async function callResponsesAPI_Analyze(apiKey, imageDataUrl, obs) {
-      // Clear, conservative rubric to avoid 33/33/34: if wenig Evidenz => niedrige Werte, nicht glätten!
-      const systemText = [
-        "You are a careful health assistant. Perform a purely visual assessment of the stool image.",
-        "Primary evidence is the image. Secondary input: user observations (sticky, smelly, watery).",
-        "Observation weighting rule: adjust at most ±10 points per category; never override strong visual evidence.",
-        "Return likelihoods 0–100 WITHOUT normalization – do not force them to sum to 100.",
-        "If evidence is weak/unclear, keep values low (<20). Do NOT default to ~33% splits.",
-        "Detect red flags (visible blood/clots, pitch-black tarry stool, copious mucus).",
-        "No diagnosis; plain neutral summary (1–3 sentences).",
-        "Recommendations: non-medical enzyme hints (e.g., Lipase/Pankreatin, proteases, amylase/α-glucosidase, α-galaktosidase, Laktase) where applicable."
-      ].join(" ");
-
+    async function callResponses_Extract(apiKey, imageDataUrl){
       const schema = {
         type: "object",
         additionalProperties: false,
+        required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
         properties: {
           summary: { type: "string" },
-          likelihoods: {
+          vision_quality: { type: "string", enum:["good","fair","poor"] },
+          bristol: { type: "integer", minimum:1, maximum:7 },
+          feature_flags: {
             type: "object",
             additionalProperties: false,
+            required: [
+              "oily_sheen","sticks_to_bowl","floats","watery_liquid","foamy_bubbles",
+              "undigested_fiber","pale_clay_color","green_color","black_tarry","red_blood",
+              "mucus_excess","visible_fat_globules","many_small_fragments","formed_loglike"
+            ],
             properties: {
-              fat_maldigestion: { type: "number", minimum: 0, maximum: 100 },
-              protein_maldigestion: { type: "number", minimum: 0, maximum: 100 },
-              carb_maldigestion: { type: "number", minimum: 0, maximum: 100 }
-            },
-            required: ["fat_maldigestion","protein_maldigestion","carb_maldigestion"]
+              oily_sheen:{type:"boolean"},
+              sticks_to_bowl:{type:"boolean"},
+              floats:{type:"boolean"},
+              watery_liquid:{type:"boolean"},
+              foamy_bubbles:{type:"boolean"},
+              undigested_fiber:{type:"boolean"},
+              pale_clay_color:{type:"boolean"},
+              green_color:{type:"boolean"},
+              black_tarry:{type:"boolean"},
+              red_blood:{type:"boolean"},
+              mucus_excess:{type:"boolean"},
+              visible_fat_globules:{type:"boolean"},
+              many_small_fragments:{type:"boolean"},
+              formed_loglike:{type:"boolean"}
+            }
+          },
+          detected_colors: {
+            type: "array",
+            items: { type:"string", enum:["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
           },
           red_flags: {
             type: "object",
             additionalProperties: false,
-            properties: {
-              present: { type: "boolean" },
-              notes: { type: "string" }
-            },
-            required: ["present","notes"]
-          },
-          recommendations: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                category: { type: "string" },  // "fat" | "protein" | "carb" | "general"
-                enzyme: { type: "string" },
-                notes: { type: "string" },
-                amazon_keywords: { type: "string" }
-              },
-              required: ["enzyme","amazon_keywords"]
-            }
-          },
-          confidence: { type: "number", minimum: 0, maximum: 100 }
-        },
-        required: ["summary","likelihoods","red_flags","recommendations","confidence"]
-      };
-
-      const userObs = `User observations — Sticky: ${obs.sticky?'Yes':'No'}; Smelly (rotten egg/ammonia): ${obs.smelly?'Yes':'No'}; Watery + gas: ${obs.watery?'Yes':'No'}.`;
-
-      const body = {
-        model: "gpt-4o-mini",
-        input: [
-          { role: "system", content: [{ type: "text", text: systemText }]},
-          { role: "user", content: [
-            { type: "input_text", text: "Analyze the image strictly by visible cues. Use user observations only for small adjustments (±10 each). Output JSON only per schema." },
-            { type: "input_text", text: userObs },
-            { type: "input_image", image_url: imageDataUrl, detail: "high" }
-          ]}
-        ],
-        temperature: 0,
-        max_output_tokens: 900,
-        text: {
-          format: {
-            type: "json_schema",
-            name: "StoolDigestiveAssessment",
-            strict: true,
-            schema
+            required: ["present","notes"],
+            properties: { present:{type:"boolean"}, notes:{type:"string"} }
           }
         }
       };
-
+      const instructions = [
+        "You are a careful vision assistant.",
+        "Identify ONLY what is visually present; do not invent smell or symptoms.",
+        "Fill all feature_flags as booleans from the image.",
+        "Choose Bristol 1..7.",
+        "If soft/mushy (Bristol 6) or watery (Bristol 7), reflect that via bristol and flags (many_small_fragments / watery_liquid).",
+        "Set vision_quality = good/fair/poor by lighting/focus/obstruction.",
+        "Mark red_flags if obvious red blood or tarry black."
+      ].join(" ");
+      const body = {
+        model: "gpt-4o-mini",
+        temperature: 0,
+        max_output_tokens: 900,
+        input: [
+          { role:"system", content:[{ type:"text", text: instructions }]},
+          { role:"user", content:[
+            { type:"input_text", text:"Return JSON only per schema for this image."},
+            { type:"input_image", image_url: imageDataUrl, detail:"high" }
+          ]}
+        ],
+        text: { format: { type:"json_schema", name:"StoolVisualExtractionV1", strict:true, schema } }
+      };
       const res = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + apiKey
-        },
+        headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok) {
-        const t = await res.text().catch(()=> "");
-        throw new Error(t || (res.status + " Analyze HTTP-Fehler"));
-      }
+      if (!res.ok){ throw new Error(await res.text()); }
       return await res.json();
     }
 
+    // ---------- Scoring (deterministisch, Bild-first) ----------
+    function computeScoresFromFeatures(visionObj, obs){
+      const f = visionObj.feature_flags || {};
+      const b = Number(visionObj.bristol || 0);
+      const colors = Array.isArray(visionObj.detected_colors) ? visionObj.detected_colors : [];
+
+      let fat = 0, carb = 0, protein = 0;
+
+      // FETT – visuelle Marker
+      fat += f.oily_sheen           ? 3.0 : 0;
+      fat += f.visible_fat_globules ? 2.8 : 0;
+      fat += f.sticks_to_bowl       ? 2.4 : 0;
+      fat += f.floats               ? 1.2 : 0;
+      fat += f.pale_clay_color      ? 2.0 : 0;
+      if (colors.includes("yellow")) fat += 0.6;
+
+      // KH – visuelle Marker
+      carb += f.watery_liquid        ? 3.0 : 0;
+      carb += f.foamy_bubbles        ? 1.6 : 0;
+      carb += f.undigested_fiber     ? 2.0 : 0;
+      carb += f.many_small_fragments ? 1.2 : 0;
+      carb += f.mucus_excess         ? 0.8 : 0;
+      carb += f.green_color          ? 0.7 : 0;
+
+      // PROTEIN – visuelle Marker (schwach)
+      protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
+
+      // Bristol-Information (rein visuell)
+      if (b === 6) carb += 1.6;
+      if (b === 7) carb += 2.6;
+      if (!f.formed_loglike && b >= 5) carb += 0.8;
+      if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
+
+      // Nutzer-Beobachtungen (max ~10% Einfluss gesamt)
+      if (obs.sticky) fat     += 0.5;
+      if (obs.watery) carb    += 0.5;
+      if (obs.smelly) protein += 1.5;
+
+      const normalPattern = (
+        (b >= 3 && b <= 5) &&
+        f.formed_loglike &&
+        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
+        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
+        !f.red_blood && !f.black_tarry
+      );
+
+      // Mapping auf 0..100 je Kategorie (keine Zwangs-Summe!)
+      const fatPct     = clamp01(fat / 12.5) * 100;   // typ. Max ~12
+      const carbPct    = clamp01(carb / 12.5) * 100;  // typ. Max ~12
+      const proteinPct = clamp01(protein / 5.0) * 100; // protein selten hoch
+
+      const percents = {
+        fat: Math.round(fatPct),
+        protein: Math.round(proteinPct),
+        carb: Math.round(carbPct)
+      };
+
+      // Rationale
+      const why = [];
+      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.pale_clay_color || f.floats) {
+        const bits = [
+          f.oily_sheen?'öliger Glanz':null,
+          f.visible_fat_globules?'Fetttröpfchen':null,
+          f.sticks_to_bowl?'klebrig':null,
+          f.pale_clay_color?'sehr hell/lehmig':null,
+          f.floats?'schwimmt':null
+        ].filter(Boolean).join(', ');
+        if (bits) why.push('Fett-Marker: ' + bits);
+      }
+      if (f.watery_liquid || f.foamy_bubbles || f.undigested_fiber || f.many_small_fragments || f.mucus_excess || f.green_color || b>=6) {
+        const bits = [
+          f.watery_liquid?'wässrig':null,
+          f.foamy_bubbles?'schaumig/Bläschen':null,
+          f.undigested_fiber?'unverd. Pflanzenfasern':null,
+          f.many_small_fragments?'viele Fragmente':null,
+          f.mucus_excess?'mehr Schleim':null,
+          f.green_color?'grünlich':null,
+          (b===6)?'Bristol 6 (weich/breiig)':null,
+          (b===7)?'Bristol 7 (wässrig)':null
+        ].filter(Boolean).join(', ');
+        if (bits) why.push('KH-Marker: ' + bits);
+      }
+      if (obs.smelly) why.push('Nutzerhinweis: starker Geruch → kleiner Protein-Zuschlag.');
+      const rationale = why.length ? ('Begründung: ' + why.join(' | ')) : (normalPattern ? 'Begründung: unauffälliges, geformtes, braunes Bild – keine eindeutigen Maldigestions-Marker.' : 'Begründung: sichtbare Marker waren schwach.');
+
+      const normalNote = normalPattern ? 'Bild wirkt unauffällig (Bristol 3–5, geformt, braun). Wahrscheinlichkeiten daher niedrig.' : '';
+
+      return { percents, rationale, normalNote };
+    }
+
+    function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+
     // ---------- Render ----------
-    function renderResults(data) {
-      // Red Flags
-      if (data?.red_flags?.present) {
+    function renderBars(p){
+      els.bars.innerHTML = '';
+      const rows = [
+        { label:'Fett-Maldigestion',    val:p.fat,     cls:'progress-success' },
+        { label:'Protein-Maldigestion', val:p.protein, cls:'progress-info'    },
+        { label:'KH-Maldigestion',      val:p.carb,    cls:'progress-warning' }
+      ];
+      rows.forEach(r=>{
+        els.bars.insertAdjacentHTML('beforeend', `
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>${r.label}</span><span>${r.val}%</span></div>
+            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100"></progress>
+          </div>
+        `);
+      });
+    }
+
+    function renderRedFlags(red){
+      if (red?.present) {
         els.redFlags.classList.remove('hidden');
         els.redFlags.innerHTML = `
           <div role="alert" class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span><strong>Warnzeichen:</strong> ${escapeHTML(data.red_flags.notes || '')}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
           </div>`;
       } else {
         els.redFlags.classList.add('hidden');
         els.redFlags.innerHTML = '';
       }
+    }
 
-      // Bars
-      els.bars.innerHTML = '';
-      const cfg = [
-        { key: 'protein_maldigestion', label: 'Protein-Maldigestion', cls: 'progress-info' },
-        { key: 'fat_maldigestion',     label: 'Fett-Maldigestion',    cls: 'progress-success' },
-        { key: 'carb_maldigestion',    label: 'KH-Maldigestion',      cls: 'progress-warning' }
-      ];
-      const L = data?.likelihoods || {};
-      cfg.forEach(row => {
-        const v = Math.max(0, Math.min(100, Number(L[row.key] ?? 0)));
-        els.bars.insertAdjacentHTML('beforeend', `
-          <div>
-            <div class="flex justify-between text-sm mb-1">
-              <span>${row.label}</span><span>${v}%</span>
+    function renderRecs(p){
+      const recs = [];
+      if (p.fat >= 40) recs.push({ enzyme:'Pankreatin/Lipase', notes:'Bei fettigem, schmierigem Stuhl – auf Lipase-Einheiten achten.', amazon_keywords:'Pankreatin magensaftresistent 20000 Lipase' });
+      if (p.carb >= 40) recs.push({ enzyme:'Amylase/α-Glukosidase', notes:'Bei wässrig/breiig und Blähungen nach KH-reichen Mahlzeiten.', amazon_keywords:'Verdauungsenzyme Amylase Glucosidase' });
+      if (p.protein >= 40) recs.push({ enzyme:'Protease/Bromelain', notes:'Bei deutlichem Eiweiß-Hinweis (faulig/Ammoniak).', amazon_keywords:'Bromelain 2400 GDU Protease' });
+      if (!recs.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
+
+      const tag = (els.amazonTag.value || '').trim();
+      els.recs.classList.remove('hidden');
+      els.recsWrap.innerHTML = '';
+      recs.forEach(r=>{
+        const link = `https://www.amazon.de/s?k=${encodeURIComponent(r.amazon_keywords)}${tag?`&tag=${encodeURIComponent(tag)}`:''}`;
+        els.recsWrap.insertAdjacentHTML('beforeend', `
+          <div class="card bg-base-200">
+            <div class="card-body">
+              <h4 class="card-title">${escapeHTML(r.enzyme)}</h4>
+              <p>${escapeHTML(r.notes||'')}</p>
+              <div class="card-actions justify-end">
+                <a class="btn btn-primary btn-sm" href="${link}" target="_blank" rel="noopener ${tag?'sponsored':''}">Auf Amazon ansehen</a>
+              </div>
+              <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
-            <progress class="progress ${row.cls} w-full" value="${v}" max="100"></progress>
           </div>
         `);
       });
-
-      els.summary.textContent = data?.summary || 'Keine Zusammenfassung verfügbar.';
-      // Recs
-      const recs = Array.isArray(data?.recommendations) ? data.recommendations : [];
-      if (recs.length) {
-        els.recs.classList.remove('hidden');
-        els.recsWrap.innerHTML = '';
-        const tag = (els.amazonTag.value || '').trim();
-        recs.forEach(r=>{
-          const kw = (r.amazon_keywords || r.enzyme || '').trim();
-          const link = kw ? `https://www.amazon.de/s?k=${encodeURIComponent(kw)}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}` : '#';
-          els.recsWrap.insertAdjacentHTML('beforeend', `
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <h4 class="card-title">${escapeHTML(r.enzyme || r.category || 'Empfehlung')}</h4>
-                ${r.notes ? `<p>${escapeHTML(r.notes)}</p>` : ''}
-                <div class="card-actions justify-end">
-                  <a class="btn btn-primary btn-sm" href="${link}" target="_blank" rel="noopener ${tag ? 'sponsored' : ''}">
-                    Auf Amazon ansehen
-                  </a>
-                </div>
-              </div>
-            </div>
-          `);
-        });
-      } else {
-        els.recs.classList.add('hidden');
-        els.recsWrap.innerHTML = '';
-      }
-
-      els.results.classList.remove('hidden');
-      // Scroll to results on mobile
-      setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 100);
     }
+
+    // ---------- Utils ----------
+    function showQuestions(show){ els.questions.classList.toggle('hidden', !show); }
 
   </script>
 </body>
