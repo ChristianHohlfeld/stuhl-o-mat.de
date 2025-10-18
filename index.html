@@ -159,7 +159,7 @@
 
           <!-- Hinweise + Affiliate-Links -->
           <div id="recs" class="mt-6 hidden">
-            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (frei verkäuflich)</h3>
+            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise & Kaufen</h3>
             <div id="recsWrap" class="space-y-3"></div>
             <p class="text-[11px] text-base-content/60 mt-2 text-center">
               Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung – Packungsangaben beachten.
@@ -237,26 +237,25 @@
     let lastPrecheck = null;
 
     // ---------- Statische konkrete Produkte (Amazon.de) ----------
-    // Kategorien:
-    // - KH (Kohlenhydrate): Alpha-Galactosidase
-    // - Fett: Pankreatin/Lipase
-    // - Protein: Bromelain (hoher GDU-Wert)
-    // Die Links werden direkt als https://www.amazon.de/dp/ASIN (+ ?tag=...) erzeugt.
+    // Kategorien: KH (Alpha-Galactosidase), Fett (Pankreatin/Lipase), Protein (Bromelain, hoher GDU-Wert)
     const PRODUCTS = {
       carb: {
         title: "sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
         asin: "B07PTKTLMJ",
-        note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte)."
+        note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).",
+        subtitle: "KH-Enzyme"
       },
       fat: {
         title: "PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
         asin: "B00ELU7SSM",
-        note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten."
+        note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.",
+        subtitle: "Fett-Enzyme"
       },
       protein: {
         title: "Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
         asin: "B09C1XV3P3",
-        note: "Bei eiweißlastigen Speisen / sehr strengem Geruch."
+        note: "Bei eiweißlastigen Speisen / sehr strengem Geruch.",
+        subtitle: "Protein-Enzyme"
       }
     };
 
@@ -452,7 +451,7 @@
       // Einfache Kurz-Zusammenfassung
       els.summary.textContent = composePlainSummary(visionObj, percents);
 
-      // Konkrete Produkt-Empfehlungen (mit Affiliate-Tag)
+      // Konkrete Produkt-Empfehlungen (mit Affiliate-Tag) – immer anzeigen
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
@@ -600,31 +599,37 @@
       }
     }
 
-    // ---------- Konkrete Affiliate-Empfehlungen ----------
+    // ---------- Konkrete Affiliate-Empfehlungen (immer zeigen) ----------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
 
-      const blocks = [];
-      if (p.carb >= 40)    blocks.push({ key:'carb',    ...PRODUCTS.carb });
-      if (p.fat >= 40)     blocks.push({ key:'fat',     ...PRODUCTS.fat  });
-      if (p.protein >= 40) blocks.push({ key:'protein', ...PRODUCTS.protein });
-
-      if (!blocks.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
+      const items = [
+        { key:'carb',    ...PRODUCTS.carb,    score: Number(p.carb    || 0) },
+        { key:'protein', ...PRODUCTS.protein, score: Number(p.protein || 0) },
+        { key:'fat',     ...PRODUCTS.fat,     score: Number(p.fat     || 0) }
+      ];
 
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
 
-      blocks.forEach(b=>{
-        const href = makeUrl(b.asin);
+      items.forEach(it=>{
+        const badgeGood = it.score >= 40;
+        const badgeCls  = badgeGood ? 'badge-success' : 'badge-ghost';
+        const badgeTxt  = badgeGood ? 'Empfehlung'    : 'Optional';
+        const href = makeUrl(it.asin);
+
         els.recsWrap.insertAdjacentHTML('beforeend', `
           <div class="card bg-base-200">
             <div class="card-body">
-              <h4 class="card-title">${escapeHTML(b.title)}</h4>
-              <p>${escapeHTML(b.note||'')}</p>
+              <div class="flex items-center justify-between">
+                <h4 class="card-title">${escapeHTML(it.title)}</h4>
+                <span class="badge ${badgeCls}">${badgeTxt}</span>
+              </div>
+              <p class="text-sm">${escapeHTML(it.note || '')}</p>
+              <p class="text-xs text-base-content/60">${escapeHTML(it.subtitle || '')} · Score: ${Math.round(it.score)}%</p>
               <div class="card-actions justify-end">
-                <a class="btn btn-primary btn-sm" href="${href}" target="_blank"
-                   rel="noopener sponsored nofollow">Auf Amazon ansehen</a>
+                <a class="btn btn-primary btn-sm" href="${href}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
               </div>
               <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
@@ -707,7 +712,6 @@
       const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
       roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // FG
     }
-  
     function roundedRect(ctx, x, y, w, h, r, color){
       ctx.beginPath();
       ctx.moveTo(x+r, y);
