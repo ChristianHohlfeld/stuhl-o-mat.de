@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ANALyze – Stuhl AI Analyzer</title>
+  <title>ANALyze – Stuhl AI Analyzer (No-Fake)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet" type="text/css" />
@@ -84,18 +84,18 @@
 
         <!-- Triage (3 quick checks) -->
         <section id="triageSection" class="hidden w-full text-left">
-          <h2 class="card-title justify-center mb-3">2) Kurzbeobachtungen</h2>
+          <h2 class="card-title justify-center mb-3">2) Kurzbeobachtungen (geringe Gewichtung)</h2>
           <div class="grid gap-3">
             <label class="label cursor-pointer justify-between gap-4">
-              <span class="label-text">Klebrig/Schmierfilm (deutet auf Fett)?</span>
+              <span class="label-text">Klebrig/Schmierfilm?</span>
               <input id="isSticky" type="checkbox" class="toggle toggle-primary"/>
             </label>
             <label class="label cursor-pointer justify-between gap-4">
-              <span class="label-text">Starker „faule Eier/Ammoniak“-Geruch (Protein)?</span>
+              <span class="label-text">„faule Eier/Ammoniak“-Geruch?</span>
               <input id="smellsStrong" type="checkbox" class="toggle toggle-primary"/>
             </label>
             <label class="label cursor-pointer justify-between gap-4">
-              <span class="label-text">Wässrig & Blähungen (KH)?</span>
+              <span class="label-text">Wässrig & Blähungen?</span>
               <input id="isWatery" type="checkbox" class="toggle toggle-primary"/>
             </label>
           </div>
@@ -123,11 +123,10 @@
 
           <div class="mb-2 text-sm">
             <span id="modeBadge" class="badge badge-outline hidden"></span>
+            <span id="qualityBadge" class="badge badge-outline hidden ml-2"></span>
           </div>
 
-          <div id="bars" class="space-y-4 text-left">
-            <!-- Bars inserted here -->
-          </div>
+          <div id="bars" class="space-y-4 text-left"></div>
 
           <p id="analysisSummary" class="mt-5 text-center text-base-content font-medium bg-base-200 p-4 rounded-lg"></p>
 
@@ -185,6 +184,7 @@
       resultsSection: document.getElementById('resultsSection'),
       redFlags: document.getElementById('redFlags'),
       modeBadge: document.getElementById('modeBadge'),
+      qualityBadge: document.getElementById('qualityBadge'),
       bars: document.getElementById('bars'),
       analysisSummary: document.getElementById('analysisSummary'),
       recommendationSection: document.getElementById('recommendationSection'),
@@ -297,87 +297,78 @@
       try {
         precheckOK = await precheckIsStool(key, currentImageData);
       } catch (e) {
-        precheckOK = false;
+        precheckOK = true; // nicht blockieren – wir analysieren trotzdem
         toast('Hinweis: Vorprüfung nicht möglich, versuche direkte Analyse…', false);
       }
       if (!precheckOK) {
-        toast('Bild wirkt ungewöhnlich (kein typischer Stuhl) – Ergebnis ggf. unzuverlässig.', false);
+        setLoading(false);
+        toast('Bild wirkt nicht wie typischer Stuhl – Abbruch.', true);
+        return; // **kein** Fallback, kein „Fake“
       }
 
-      // 2) Heuristiken aus Checkboxes
+      // 2) Hauptanalyse (Responses + JSON Schema strict)
+      setLoading(true, 'Echte KI-Analyse läuft…', 'Primär visuelle Erkennung; Angaben nur minimal gewichtet.');
+      let visionObj = null;
+      try {
+        visionObj = await extractVisualFeatures(key, currentImageData);
+      } catch (e) {
+        setLoading(false);
+        toast('Analyse fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
+        return; // **kein** Fallback
+      }
+
+      // 3) Prozentwerte rein aus Features + minimale User-Gewichtung
       const observations = {
         sticky: !!els.isSticky.checked,
         smelly: !!els.smellsStrong.checked,
         watery: !!els.isWatery.checked,
       };
-      const heur = heuristicScores(observations); // [protein,fat,carb]
+      const { percents, rationale } = computeScoresFromFeatures(visionObj, observations);
 
-      // 3) Hauptanalyse (Responses + JSON Schema strict)
-      setLoading(true, 'Echte KI-Analyse läuft…', 'Ihr Bild und Ihre Angaben werden analysiert…');
-      let aiObj = null, usedFallback = false;
-      try {
-        aiObj = await analyzeWithOpenAI(key, currentImageData, observations);
-      } catch (e) {
-        usedFallback = true;
-        toast('Modellantwort fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
-        aiObj = {
-          summary: 'Modellantwort nicht verfügbar – heuristische Einschätzung angezeigt.',
-          likelihoods: {
-            protein_maldigestion: heur[0],
-            fat_maldigestion: heur[1],
-            carb_maldigestion: heur[2],
-          },
-          recommendations: [],
-          red_flags: { present:false, notes:'' },
-          confidence: 0
-        };
-      }
-
-      // 4) Ausgabe berechnen
-      let final;
-      const anyObs = observations.sticky || observations.smelly || observations.watery;
-      if (usedFallback && !anyObs) {
-        // Kein Vision + keine Beobachtungen => zeige neutral 0/0/0 statt 33/33/34
-        final = [0,0,0];
-      } else {
-        final = combineScores(aiObj.likelihoods, heur, Number(aiObj.confidence||60));
-      }
-
-      // Mode-Badge
+      // 4) Render
       els.modeBadge.classList.remove('hidden');
-      els.modeBadge.textContent = usedFallback ? '⚠️ Fallback (ohne Vision)' : '🧠 Vision-Analyse aktiv';
-      els.modeBadge.className = 'badge ' + (usedFallback ? 'badge-warning' : 'badge-success');
+      els.modeBadge.textContent = '🧠 Vision-Analyse (deterministisch)';
+      els.modeBadge.className = 'badge badge-success';
 
-      renderBars(final[1], final[0], final[2]); // display: fat, protein, carb
-      els.analysisSummary.textContent = (aiObj.summary || '').trim();
+      const q = (visionObj.vision_quality || 'fair').toLowerCase();
+      els.qualityBadge.classList.remove('hidden');
+      els.qualityBadge.textContent = 'Qualität: ' + q;
+      els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
 
-      if (aiObj.red_flags?.present || aiObj.red_flags?.notes) {
+      renderBars(percents.fat, percents.protein, percents.carb);
+
+      // Red Flags
+      if (visionObj.red_flags?.present || visionObj.red_flags?.notes) {
         els.redFlags.innerHTML = `
           <div role="alert" class="alert alert-error">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <span><strong>Warnzeichen:</strong> ${escapeHTML(aiObj.red_flags?.notes || 'Bitte ärztlich abklären.')}</span>
+            <span><strong>Warnzeichen:</strong> ${escapeHTML(visionObj.red_flags?.notes || 'Bitte ärztlich abklären.')}</span>
           </div>`;
         els.redFlags.classList.remove('hidden');
       } else {
         els.redFlags.classList.add('hidden');
       }
 
-      renderRecommendations(aiObj.recommendations || []);
+      // Summary = kurze visuelle Zusammenfassung + Begründung aus unserer Punktlogik
+      const sum = (visionObj.summary || '').trim();
+      els.analysisSummary.textContent = (sum ? sum + ' ' : '') + rationale;
+
+      renderRecommendations([]); // (lassen leer oder generisch)
+      els.recommendationSection.classList.add('hidden'); // optional ausblenden
 
       setLoading(false);
       els.resultsSection.classList.remove('hidden');
-      els.recommendationSection.classList.remove('hidden');
     }
 
-    // ---------- OpenAI: Precheck via Responses (strict schema; name+schema required) ----------
+    // ---------- OpenAI: Precheck via Responses (strict schema) ----------
     async function precheckIsStool(key, imageDataUrl){
       const schema = {
         type: "object",
         additionalProperties: false,
-        required: ["is_stool", "notes"], // alle properties required
+        required: ["is_stool", "notes"],
         properties: {
           is_stool: { type: "boolean" },
           notes:    { type: "string" }
@@ -386,7 +377,11 @@
 
       const payload = {
         model: "gpt-4o-mini",
-        instructions: "Decide if the image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
+        instructions: "Decide if the user image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
+        seed: 42,
+        temperature: 0,
+        top_p: 1,
+        max_output_tokens: 40,
         input: [{
           role: "user",
           content: [
@@ -394,12 +389,10 @@
             { type: "input_image", image_url: imageDataUrl }
           ]
         }],
-        temperature: 0,
-        max_output_tokens: 50,
         text: {
           format: {
             type: "json_schema",
-            name: "StoolPrecheck",
+            name: "StoolPrecheckV1",
             schema,
             strict: true
           }
@@ -418,77 +411,99 @@
       return !!(obj && obj.is_stool === true);
     }
 
-    // ---------- OpenAI: Main Analysis (Responses + JSON Schema; name+schema required) ----------
-    async function analyzeWithOpenAI(key, imageDataUrl, observations){
-      const instructions = [
-        "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
-        "Analysiere visuell: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
-        `Nutzer-Beobachtungen (sekundär): klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
-        "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
-        "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
-        "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
-        "Antwort NUR als JSON gemäß Schema."
-      ].join(" ");
-
+    // ---------- OpenAI: Extract strictly-bounded visual features ----------
+    async function extractVisualFeatures(key, imageDataUrl){
+      // Strenges, deterministisches Schema – nur visuelle Flags
       const schema = {
-        type:"object",
-        additionalProperties:false,
-        required:["summary","likelihoods","recommendations","confidence","red_flags"],
-        properties:{
-          summary:{ type:"string" },
-          likelihoods:{
-            type:"object",
-            additionalProperties:false,
-            required:["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
-            properties:{
-              fat_maldigestion:{ type:"number", minimum:0, maximum:100 },
-              protein_maldigestion:{ type:"number", minimum:0, maximum:100 },
-              carb_maldigestion:{ type:"number", minimum:0, maximum:100 }
+        type: "object",
+        additionalProperties: false,
+        required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
+        properties: {
+          summary: { type: "string" },
+          vision_quality: { type: "string", enum: ["good","fair","poor"] },
+          bristol: { type: "integer", minimum: 1, maximum: 7 },
+          feature_flags: {
+            type: "object",
+            additionalProperties: false,
+            // Alle hier gelisteten Keys sind required (deterministisch!)
+            required: [
+              "oily_sheen",
+              "sticks_to_bowl",
+              "floats",
+              "watery_liquid",
+              "foamy_bubbles",
+              "undigested_fiber",
+              "pale_clay_color",
+              "green_color",
+              "black_tarry",
+              "red_blood",
+              "mucus_excess",
+              "visible_fat_globules",
+              "many_small_fragments",
+              "formed_loglike"
+            ],
+            properties: {
+              oily_sheen:           { type: "boolean" },
+              sticks_to_bowl:       { type: "boolean" },
+              floats:               { type: "boolean" },
+              watery_liquid:        { type: "boolean" },
+              foamy_bubbles:        { type: "boolean" },
+              undigested_fiber:     { type: "boolean" },
+              pale_clay_color:      { type: "boolean" },
+              green_color:          { type: "boolean" },
+              black_tarry:          { type: "boolean" },
+              red_blood:            { type: "boolean" },
+              mucus_excess:         { type: "boolean" },
+              visible_fat_globules: { type: "boolean" },
+              many_small_fragments: { type: "boolean" },
+              formed_loglike:       { type: "boolean" }
             }
           },
-          red_flags:{
-            type:"object",
-            additionalProperties:false,
-            required:["present","notes"],
-            properties:{ present:{ type:"boolean" }, notes:{ type:"string" } }
+          detected_colors: {
+            type: "array",
+            items: { type: "string", enum: ["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
           },
-          recommendations:{
-            type:"array",
-            items:{
-              type:"object",
-              additionalProperties:false,
-              required:["category","enzyme","notes","dose_hint","amazon_keywords"],
-              properties:{
-                category:{ type:"string" },
-                enzyme:{ type:"string" },
-                notes:{ type:"string" },
-                dose_hint:{ type:"string" },
-                amazon_keywords:{ type:"string" }
-              }
+          red_flags: {
+            type: "object",
+            additionalProperties: false,
+            required: ["present","notes"],
+            properties: {
+              present: { type: "boolean" },
+              notes:   { type: "string" }
             }
-          },
-          confidence:{ type:"number", minimum:0, maximum:100 }
+          }
         }
       };
+
+      const instructions = [
+        "You are a careful vision assistant. Identify ONLY what is VISUALLY present.",
+        "Do not infer smell or patient symptoms.",
+        "Fill all feature_flags strictly as booleans based on the image.",
+        "Choose a Bristol stool scale (1..7) from appearance.",
+        "Set vision_quality = good/fair/poor based on lighting, focus, obstruction.",
+        "Mark red_flags if there is obvious blood (red) or tarry black appearance."
+      ].join(" ");
 
       const payload = {
         model: "gpt-4o-mini",
         instructions,
+        seed: 42,
+        temperature: 0,
+        top_p: 1,
+        max_output_tokens: 900,
         input: [{
           role: "user",
           content: [
-            { type: "input_text", text: "Analysiere das Bild und gib NUR JSON gemäß Schema aus." },
+            { type: "input_text", text: "Extract ONLY JSON as per schema from this image." },
             { type: "input_image", image_url: imageDataUrl }
           ]
         }],
-        temperature: 0,
-        max_output_tokens: 900,
         text: {
           format: {
-            type:"json_schema",
-            name:"StoolDigestiveAssessment",
+            type: "json_schema",
+            name: "StoolVisualExtractionV1",
             schema,
-            strict:true
+            strict: true
           }
         }
       };
@@ -506,13 +521,95 @@
       return obj;
     }
 
+    // ---------- Scoring: deterministic, explicit, image-first ----------
+    function computeScoresFromFeatures(visionObj, observations){
+      const f = visionObj.feature_flags || {};
+      // Rohsignale (nur Bild)
+      let fat = 0, carb = 0, protein = 0;
+
+      // Fett-Signale (visuell)
+      fat += f.oily_sheen           ? 3.0 : 0;
+      fat += f.visible_fat_globules ? 2.6 : 0;
+      fat += f.sticks_to_bowl       ? 2.4 : 0;
+      fat += f.pale_clay_color      ? 2.2 : 0;
+      fat += f.floats               ? 1.2 : 0;
+
+      // KH-Signale (visuell)
+      carb += f.watery_liquid       ? 3.0 : 0;
+      carb += f.foamy_bubbles       ? 2.0 : 0;
+      carb += f.undigested_fiber    ? 1.8 : 0;
+      carb += f.green_color         ? 0.8 : 0;
+      carb += f.many_small_fragments? 1.0 : 0;
+      carb += f.mucus_excess        ? 0.6 : 0;
+
+      // Protein-Signale (visuell sind schwach/unspezifisch)
+      // Wir nutzen konservativ nur einen kleinen Zuschlag bei überschüssigem Schleim + geformtem Stuhl
+      protein += (f.mucus_excess && f.formed_loglike) ? 0.8 : 0;
+
+      // Minimalgewichtung Nutzerangaben (<= ~10% Einfluss gesamt):
+      // Diese Add-ons verändern die Relation leicht, niemals dominant.
+      if (observations.sticky) fat    += 0.5;    // deckt sich oft mit oily_sheen
+      if (observations.watery) carb   += 0.5;    // deckt sich mit watery_liquid
+      if (observations.smelly) protein+= 1.5;    // Geruch ist nicht sichtbar → nur kleiner Bonus
+
+      const sum = fat + carb + protein;
+
+      if (sum <= 0) {
+        // Keine klaren visuellen Marker → ehrlich 0/0/0 und Begründung
+        return {
+          percents: { fat:0, protein:0, carb:0 },
+          rationale: "Keine klaren visuellen Marker erkannt; Angaben reichten nicht für eine Schätzung. Bitte Fotoqualität/Beleuchtung prüfen."
+        };
+      }
+
+      // Normalisieren auf 100 (deterministisch, größte-Rest-Methode)
+      const raw = [fat, protein, carb];
+      const total = raw.reduce((a,b)=>a+b,0);
+      const pctRaw = raw.map(x => x/total*100);
+      const base = pctRaw.map(x => Math.floor(x));
+      let rest = 100 - base.reduce((a,b)=>a+b,0);
+      const frac = pctRaw.map((x,i)=>({i, f:x-base[i]})).sort((a,b)=>b.f-a.f);
+      for (let k=0;k<rest;k++) base[frac[k % frac.length].i]++;
+
+      const percents = { fat:base[0], protein:base[1], carb:base[2] };
+
+      // Kurze Begründung anhand aktivierter Flags
+      const why = [];
+      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.pale_clay_color || f.floats) {
+        why.push("Fett-Marker: " + [
+          f.oily_sheen?'öliger Glanz':null,
+          f.visible_fat_globules?'Fetttröpfchen':null,
+          f.sticks_to_bowl?'klebrig':null,
+          f.pale_clay_color?'sehr hell/lehmig':null,
+          f.floats?'schwimmt':null
+        ].filter(Boolean).join(", "));
+      }
+      if (f.watery_liquid || f.foamy_bubbles || f.undigested_fiber || f.green_color || f.many_small_fragments || f.mucus_excess) {
+        why.push("KH-Marker: " + [
+          f.watery_liquid?'wässrig':null,
+          f.foamy_bubbles?'schaumig/Bläschen':null,
+          f.undigested_fiber?'unverd. Pflanzenfasern':null,
+          f.green_color?'grünlich':null,
+          f.many_small_fragments?'viele Fragmente':null,
+          f.mucus_excess?'mehr Schleim':null
+        ].filter(Boolean).join(", "));
+      }
+      if (observations.smelly) {
+        why.push("Hinweis Nutzer: starker Geruch (Protein-Hinweis, geringe Gewichtung).");
+      }
+
+      return {
+        percents,
+        rationale: why.length ? ("Begründung: " + why.join(" | ")) : "Begründung: sichtbare Marker waren schwach."
+      };
+    }
+
     // ---------- Rendering ----------
     function renderBars(fatPct, proteinPct, carbPct){
-      const norm = normalizeHundred([+fatPct||0, +proteinPct||0, +carbPct||0]);
       const rows = [
-        { label:"Fett-Maldigestion",    val:norm[0], cls:"progress-success" },
-        { label:"Protein-Maldigestion", val:norm[1], cls:"progress-info"    },
-        { label:"KH-Maldigestion",      val:norm[2], cls:"progress-warning" }
+        { label:"Fett-Maldigestion",    val:clampInt(fatPct),    cls:"progress-success" },
+        { label:"Protein-Maldigestion", val:clampInt(proteinPct),cls:"progress-info"    },
+        { label:"KH-Maldigestion",      val:clampInt(carbPct),   cls:"progress-warning" }
       ];
       els.bars.innerHTML = rows.map(r => `
         <div>
@@ -527,8 +624,7 @@
     function renderRecommendations(recs){
       els.recommendationsContainer.innerHTML = '';
       if (!Array.isArray(recs) || !recs.length) {
-        els.recommendationsContainer.innerHTML = genericRecsHTML();
-        els.recommendationSection.classList.remove('hidden');
+        els.recommendationSection.classList.add('hidden');
         return;
       }
       const tag = (els.amazonTag.value || 'hohlfeld-21').trim();
@@ -552,31 +648,9 @@
       els.recommendationSection.classList.remove('hidden');
     }
 
-    function genericRecsHTML(){
-      const tag = (els.amazonTag.value || 'hohlfeld-21').trim();
-      const items = [
-        { name:'Pankreatin (Lipase-stark)', kw:'Pankreatin magensaftresistent 20000 Lipase', note:'Bei fettigem, glänzendem Stuhl (mit Arzt abklären).' },
-        { name:'Laktase', kw:'Laktase 10000 FCC Tabletten', note:'Bei Milch-assoziiertem wässrigen Stuhl/Blähungen.' },
-        { name:'α-Galaktosidase', kw:'Alpha Galactosidase Enzyme', note:'Bei Bohnen/Kohl-Blähungen.' },
-        { name:'Bromelain/Papain', kw:'Bromelain 2400 GDU Papain Enzym', note:'Unterstützung eiweißreicher Mahlzeiten.' },
-        { name:'Multi-Digestiv (Amylase/Protease/Lipase)', kw:'Verdauungsenzyme Komplex Amylase Protease Lipase', note:'Breitband-Test zu großen Mischmahlzeiten.' },
-      ];
-      return items.map(r => `
-        <div class="card bg-base-200 shadow-md">
-          <div class="card-body">
-            <h4 class="card-title">${escapeHTML(r.name)}</h4>
-            <p class="text-sm">${escapeHTML(r.note)}</p>
-            <div class="card-actions justify-end">
-              <a href="https://www.amazon.de/s?k=${encodeURIComponent(r.kw)}&tag=${encodeURIComponent(tag)}"
-                 target="_blank" rel="noopener sponsored" class="btn btn-primary btn-sm">Auf Amazon ansehen</a>
-            </div>
-            <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
     // ---------- Utils ----------
+    function clampInt(x){ x = Math.round(Number(x)||0); if (x<0) x=0; if (x>100) x=100; return x; }
+
     function toast(msg, isError = true){
       const el = document.createElement('div');
       el.className = `alert ${isError?'alert-error':'alert-success'} shadow-lg`;
@@ -610,6 +684,7 @@
       els.resultsSection.classList.add('hidden');
       els.recommendationSection.classList.add('hidden');
       els.modeBadge.classList.add('hidden');
+      els.qualityBadge.classList.add('hidden');
 
       els.actionButton.textContent = 'ANALyze';
 
@@ -635,42 +710,6 @@
         if (t?.text) return t.text;
       }
       return '';
-    }
-
-    // Normalize with guard: if total <= 0, return zeros (prevents 33/33/34)
-    function normalizeHundred(arr){
-      const total = arr.reduce((a,b)=>a+Math.max(0, +b||0), 0);
-      if (total <= 0) return [0,0,0];
-      const raw = arr.map(x => Math.max(0, +x||0) / total * 100);
-      const base = raw.map(x => Math.floor(x));
-      let rest = 100 - base.reduce((a,b)=>a+b,0);
-      const frac = raw.map((x,i)=>({i, f:x-base[i]})).sort((a,b)=>b.f-a.f);
-      for (let k=0;k<rest;k++) base[frac[k % frac.length].i]++;
-      return base;
-    }
-
-    function heuristicScores({sticky, smelly, watery}){
-      const s = sticky ? 1 : 0, m = smelly ? 1 : 0, w = watery ? 1 : 0;
-      // Neu: ohne Beobachtungen -> keine Heuristik
-      if (s + m + w === 0) return [0, 0, 0]; // [protein, fat, carb]
-
-      let P=33, F=33, C=34;
-      F += 40*s + 10*m*0.5;
-      P += 40*m + 10*s*0.5;
-      C += 40*w + 10*s*0.2 + 10*m*0.2;
-      const sum = P+F+C, raw = [P/sum*100, F/sum*100, C/sum*100];
-      return normalizeHundred(raw); // [protein, fat, carb]
-    }
-
-    function combineScores(aiLik, heur, aiConf=60){
-      const ai = [
-        Number(aiLik?.protein_maldigestion||0),
-        Number(aiLik?.fat_maldigestion||0),
-        Number(aiLik?.carb_maldigestion||0),
-      ];
-      const a = Math.max(0.55, Math.min(0.9, (aiConf/100)*0.8 + 0.1)); // weight for AI
-      const mix = [0,1,2].map(i => a*ai[i] + (1-a)*heur[i]);
-      return normalizeHundred(mix); // [protein, fat, carb]
     }
   </script>
 </body>
