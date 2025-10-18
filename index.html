@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhlbild-Analyse – Visuelle Auswertung (mobil · einfach · teilen)</title>
+  <title>Stuhlbild-Analyse – Einfach & verständlich</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -15,9 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root { --card-pad: 1rem; }
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
     .pixel { image-rendering: pixelated; }
   </style>
 </head>
@@ -25,63 +23,41 @@
   <!-- Toasts -->
   <div id="toasts" class="toast toast-top toast-center z-50" aria-live="polite"></div>
 
-  <div class="container mx-auto max-w-3xl p-4 sm:p-6">
+  <div class="container mx-auto max-w-xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
       <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhlbild-Analyse</h1>
       <p class="text-base-content/70 mt-2">Einfache visuelle Auswertung. <strong>Keine Diagnose.</strong></p>
     </header>
 
-    <!-- Einstellungen -->
-    <section class="card bg-base-100 shadow mb-6">
+    <!-- Einstellungen (sehr kurz) -->
+    <section class="card bg-base-100 shadow mb-4">
       <div class="card-body gap-3">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-          <label class="form-control sm:col-span-2">
+        <div class="grid grid-cols-1 gap-3">
+          <label class="form-control">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
             <div class="join w-full">
               <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
-              <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key anzeigen/ausblenden">👁️</button>
+              <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key zeigen/verbergen">👁️</button>
             </div>
-            <div class="label"><span class="label-text-alt">Wird nur lokal gespeichert (dieses Gerät).</span></div>
+            <div class="label"><span class="label-text-alt">Wird nur lokal auf diesem Gerät gespeichert.</span></div>
           </label>
 
           <label class="form-control">
-            <div class="label"><span class="label-text font-semibold">Modell</span></div>
-            <select id="model" class="select select-bordered w-full">
-              <option value="gpt-5" selected>gpt-5 (Vision & Structured)</option>
-              <option value="gpt-5-mini">gpt-5-mini</option>
-              <option value="gpt-4o">gpt-4o</option>
-            </select>
-            <div class="label"><span class="label-text-alt">Bei Störungen anderes Modell wählen.</span></div>
-          </label>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-          <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">Amazon-Affiliate-Tag (.de) – optional</span></div>
             <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
-            <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
           </label>
-          <div class="form-control">
-            <div class="label"><span class="label-text font-semibold">Sprache</span></div>
-            <input class="input input-bordered" value="Deutsch (einfach)" disabled />
-            <div class="label"><span class="label-text-alt">Ausgaben stets in einfachem Deutsch.</span></div>
-          </div>
-        </div>
-
-        <div class="card-actions justify-end">
-          <button id="saveSettings" class="btn btn-primary">Speichern</button>
         </div>
       </div>
     </section>
 
     <!-- Hinweis -->
-    <section class="alert alert-warning shadow mb-6">
+    <section class="alert alert-warning shadow mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <div>
         <div class="font-bold">Wichtiger Hinweis</div>
-        <div>Kein medizinisches Gerät. Bei Blut, pechschwarzem Stuhl, starken Schmerzen, Fieber, anhaltendem Durchfall &gt;72 h oder Gewichtsverlust bitte ärztlich abklären.</div>
+        <div>Kein Medizinprodukt. Bei Blut, pechschwarzem Stuhl, starken Schmerzen, Fieber, Durchfall &gt;72 h oder Gewichtsverlust ärztlich abklären.</div>
       </div>
     </section>
 
@@ -89,49 +65,44 @@
       <div class="card-body">
         <!-- 1) Bild -->
         <section>
-          <h2 class="card-title justify-center">Schritt 1: Bild auswählen</h2>
+          <h2 class="card-title justify-center">1. Bild auswählen</h2>
 
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-3">
-            <button id="btnGallery" class="btn btn-outline w-full sm:w-auto">📷 Aus Galerie wählen</button>
-            <button id="btnCamera"  class="btn btn-ghost w-full sm:w-auto">🎥 Kamera öffnen</button>
-            <button id="btnClear"   class="btn btn-ghost w-full sm:w-auto">🧹 Auswahl löschen</button>
+          <div class="mt-3 text-center">
+            <button id="btnPick" class="btn btn-primary w-full">Bild auswählen</button>
+            <!-- Ein einzelnes Input ohne capture -> Mobil zeigt i.d.R. Kamera ODER Galerie -->
+            <input id="fileInput" type="file" accept="image/*" class="hidden" />
+            <p class="text-xs text-base-content/60 mt-2">Tipp: gutes Licht, nicht zu weit weg.</p>
           </div>
-          <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">
-            Tipp: <em>Galerie</em> öffnet den Medienspeicher. <em>Kamera</em> nutzt die Kamera direkt.
-          </p>
 
-          <!-- Getrennte Inputs: zuverlässiger auf iOS/Android -->
-          <input id="inputGallery" type="file" accept="image/*" multiple class="hidden" aria-hidden="true" />
-          <input id="inputCamera"  type="file" accept="image/*" capture="environment" class="hidden" aria-hidden="true" />
-
-          <div id="gallery" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-4"></div>
           <div id="previewWrap" class="mt-4 hidden">
             <img id="preview" class="w-full rounded-lg shadow" alt="Vorschau" />
           </div>
         </section>
 
-        <!-- 2) Beobachtungen -->
-        <section id="questions" class="hidden mt-6">
-          <h2 class="card-title justify-center">Schritt 2: Beobachtungen (optional)</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
-            </label>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Sehr strenger Geruch? (Protein)</span>
-            </label>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Wässrig + Blähungen? (KH)</span>
-            </label>
-          </div>
+        <!-- Optionale Beobachtungen (eingeklappt) -->
+        <section id="obsBox" class="mt-4 hidden">
+          <details class="bg-base-200 rounded-lg p-3">
+            <summary class="cursor-pointer select-none">Optionale Beobachtungen</summary>
+            <div class="grid grid-cols-1 gap-2 mt-3">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
+                <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
+              </label>
+              <label class="label cursor-pointer justify-start gap-3">
+                <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
+                <span class="label-text">Sehr strenger Geruch? (Protein)</span>
+              </label>
+              <label class="label cursor-pointer justify-start gap-3">
+                <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
+                <span class="label-text">Wässrig + Blähungen? (KH)</span>
+              </label>
+            </div>
+          </details>
         </section>
 
-        <!-- 3) Analyse -->
-        <section class="mt-6 text-center">
-          <button id="analyze" class="btn btn-primary btn-lg w-full sm:w-auto">Analysieren</button>
+        <!-- 2) Analyse -->
+        <section class="mt-4 text-center">
+          <button id="analyze" class="btn btn-primary btn-lg w-full">Analysieren</button>
           <div id="progress" class="mt-3 hidden">
             <span class="loading loading-spinner loading-md text-primary"></span>
             <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
@@ -139,25 +110,25 @@
         </section>
 
         <!-- Ergebnis -->
-        <section id="results" class="hidden mt-8">
+        <section id="results" class="hidden mt-6">
           <h2 class="card-title justify-center">Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span class="badge badge-success">🧠 Visuelle Analyse (Deutsch)</span>
+            <span class="badge badge-success">Visuelle Analyse (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
           <!-- Warnzeichen -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Werte -->
+          <!-- Werte: 3 einfache Balken -->
           <div id="bars" class="mt-4 space-y-3"></div>
 
-          <!-- Kurz-Zusammenfassung -->
-          <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
+          <!-- Kurzer Text -->
+          <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
-          <!-- Empfehlungen + Kaufen -->
-          <div id="recs" class="mt-6 hidden">
+          <!-- Empfehlungen & Kaufen -->
+          <div id="recs" class="mt-5 hidden">
             <h3 class="font-semibold mb-3 text-center">Empfehlungen & Kaufen</h3>
             <div id="recsWrap" class="space-y-3"></div>
             <p class="text-[11px] text-base-content/60 mt-2 text-center">
@@ -165,18 +136,17 @@
             </p>
           </div>
 
-          <!-- Sharing -->
-          <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Teilen (verpixelte Vorschau)</h3>
+          <!-- Teilen/Download -->
+          <div class="mt-5">
             <div class="flex flex-wrap gap-2 justify-center">
               <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
               <button id="btnDownload" class="btn btn-ghost btn-sm">Download</button>
             </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt ein kleines PNG mit verpixelter Vorschau und Werten (ohne EXIF).</p>
+            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt ein kleines PNG (verpixelte Vorschau + Werte).</p>
           </div>
 
-          <div class="card-actions justify-center mt-6">
-            <button id="reset" class="btn btn-ghost">Neue Analyse</button>
+          <div class="card-actions justify-center mt-4">
+            <button id="reset" class="btn btn-ghost">Neues Bild</button>
           </div>
         </section>
       </div>
@@ -188,27 +158,18 @@
   </div>
 
   <script>
-    // ---------- Elements ----------
+    // -------- Elemente --------
     const els = {
       toasts: document.getElementById('toasts'),
       apiKey: document.getElementById('apiKey'),
       toggleKey: document.getElementById('toggleKey'),
-      model: document.getElementById('model'),
       amazonTag: document.getElementById('amazonTag'),
-      saveSettings: document.getElementById('saveSettings'),
+      btnPick: document.getElementById('btnPick'),
+      fileInput: document.getElementById('fileInput'),
 
-      // Galerie/Kamera
-      btnGallery: document.getElementById('btnGallery'),
-      btnCamera:  document.getElementById('btnCamera'),
-      btnClear:   document.getElementById('btnClear'),
-      inputGallery: document.getElementById('inputGallery'),
-      inputCamera:  document.getElementById('inputCamera'),
-
-      gallery: document.getElementById('gallery'),
       previewWrap: document.getElementById('previewWrap'),
       preview: document.getElementById('preview'),
-
-      questions: document.getElementById('questions'),
+      obsBox: document.getElementById('obsBox'),
       obsSticky: document.getElementById('obsSticky'),
       obsSmelly: document.getElementById('obsSmelly'),
       obsWatery: document.getElementById('obsWatery'),
@@ -230,13 +191,10 @@
       btnDownload: document.getElementById('btnDownload'),
     };
 
-    // ---------- State ----------
-    let images = []; // [{ dataUrl, name }]
-    let activeIndex = -1;
-    let lastPrecheck = null;
+    // -------- State --------
+    let imageDataUrl = null;
 
-    // ---------- Statische konkrete Produkte (Amazon.de) ----------
-    // Kategorien: KH (Alpha-Galactosidase), Fett (Pankreatin/Lipase), Protein (Bromelain, hoher GDU-Wert)
+    // -------- Produkte (statisch, direkt /dp/ASIN) --------
     const PRODUCTS = {
       carb: {
         key: "carb",
@@ -261,85 +219,51 @@
       }
     };
 
-    // ---------- Init ----------
-    (function init() {
+    // -------- Init --------
+    (function init(){
       try {
         els.apiKey.value    = localStorage.getItem('openai_api_key') || '';
         els.amazonTag.value = localStorage.getItem('amazon_tag') || '';
-        els.model.value     = localStorage.getItem('openai_model') || 'gpt-5';
       } catch {}
-
-      els.saveSettings.addEventListener('click', saveSettings);
+      els.apiKey.addEventListener('input', ()=> saveLocal('openai_api_key', els.apiKey.value));
+      els.amazonTag.addEventListener('input', ()=> saveLocal('amazon_tag', els.amazonTag.value));
       els.toggleKey.addEventListener('click', ()=> {
         els.apiKey.type = els.apiKey.type === 'password' ? 'text' : 'password';
         els.toggleKey.textContent = (els.apiKey.type === 'password') ? '👁️' : '🙈';
       });
-      els.apiKey.addEventListener('input', debounce(saveSettings, 300));
-      els.amazonTag.addEventListener('input', debounce(saveSettings, 300));
-      els.model.addEventListener('change', saveSettings);
 
-      // Mobil-freundliche Quelle
-      els.btnGallery.addEventListener('click', () => openPicker(els.inputGallery));
-      els.btnCamera.addEventListener('click',  () => openPicker(els.inputCamera));
-      els.btnClear.addEventListener('click', clearSelection);
-
-      els.inputGallery.addEventListener('change', onFilesFromInput);
-      els.inputCamera.addEventListener('change', onFilesFromInput);
+      els.btnPick.addEventListener('click', ()=> els.fileInput.click());
+      els.fileInput.addEventListener('change', onFileChange);
 
       els.analyze.addEventListener('click', onAnalyze);
-      els.reset.addEventListener('click', resetResults);
+      els.reset.addEventListener('click', resetUI);
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
     })();
 
-    function saveSettings() {
-      try {
-        localStorage.setItem('openai_api_key', els.apiKey.value.trim());
-        localStorage.setItem('amazon_tag', els.amazonTag.value.trim());
-        localStorage.setItem('openai_model', els.model.value.trim());
-        toast('Einstellungen gespeichert', true);
-      } catch(e){ toast('Speichern fehlgeschlagen: ' + e.message); }
+    function saveLocal(k, v){
+      try { localStorage.setItem(k, v); toast('Gespeichert', true); } catch {}
     }
 
-    function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-
-    function toast(msg, ok=false) {
+    function toast(msg, ok=false){
       const el = document.createElement('div');
       el.className = `alert ${ok?'alert-success':'alert-error'} shadow`;
       el.innerHTML = `<span>${escapeHTML(msg)}</span>`;
       els.toasts.appendChild(el);
-      setTimeout(()=> el.remove(), 3600);
+      setTimeout(()=> el.remove(), 2800);
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
-    // ---------- Datei-Quelle ----------
-    function openPicker(inputEl) {
-      try { if (typeof inputEl.showPicker === 'function') inputEl.showPicker(); else inputEl.click(); }
-      catch { inputEl.click(); }
-    }
-
-    function clearSelection(){
-      images = [];
-      activeIndex = -1;
-      els.gallery.innerHTML = '';
-      els.previewWrap.classList.add('hidden');
-      resetResults();
-      toast('Auswahl gelöscht', true);
-    }
-
-    async function onFilesFromInput(e){
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      images = [];
-      for (const f of files) {
-        const dataUrl = await fileToDataURL(f).catch(()=> null);
-        if (dataUrl) images.push({ dataUrl, name: f.name });
-      }
-      activeIndex = images.length ? 0 : -1;
-      renderGallery();
-      resetResults();
-      if (activeIndex >= 0) els.questions.classList.remove('hidden');
+    async function onFileChange(e){
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      imageDataUrl = await fileToDataURL(f).catch(()=> null);
+      if (!imageDataUrl){ toast('Konnte das Bild nicht laden.'); return; }
+      els.preview.src = imageDataUrl;
+      els.previewWrap.classList.remove('hidden');
+      els.obsBox.classList.remove('hidden');
+      els.results.classList.add('hidden');
       e.target.value = '';
     }
 
@@ -352,225 +276,90 @@
       });
     }
 
-    function renderGallery(){
-      els.gallery.innerHTML = '';
-      images.forEach((img, idx)=>{
-        const btn = document.createElement('button');
-        btn.className = `btn btn-ghost p-0 border rounded overflow-hidden ${idx===activeIndex?'ring-2 ring-primary':''}`;
-        btn.style.height = '72px';
-        btn.onclick = ()=> selectIndex(idx);
-        btn.innerHTML = `<img class="thumb w-[72px] h-[72px]" src="${img.dataUrl}" alt="Bild ${idx+1}" />`;
-        els.gallery.appendChild(btn);
-      });
-      if (activeIndex >= 0) {
-        els.preview.src = images[activeIndex].dataUrl;
-        els.previewWrap.classList.remove('hidden');
-      } else {
-        els.previewWrap.classList.add('hidden');
-      }
-    }
-
-    function selectIndex(i){
-      activeIndex = i;
-      renderGallery();
-    }
-
-    function setLoading(on, msg='Analyse läuft…') {
+    function setLoading(on, msg='Analyse läuft…'){
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
       els.analyze.disabled = on;
     }
 
-    // ---------- Analyse ----------
+    function resetUI(){
+      imageDataUrl = null;
+      els.preview.src = '';
+      els.previewWrap.classList.add('hidden');
+      els.obsSticky.checked = false;
+      els.obsSmelly.checked = false;
+      els.obsWatery.checked = false;
+      els.results.classList.add('hidden');
+      els.redFlags.classList.add('hidden'); els.redFlags.innerHTML = '';
+      els.bars.innerHTML = '';
+      els.summary.textContent = '';
+      els.recs.classList.add('hidden'); els.recsWrap.innerHTML = '';
+    }
+
+    // -------- Analyse --------
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
-      const model = els.model.value.trim();
-      if (!key) { toast('Bitte zuerst den OpenAI API-Key eingeben.'); return; }
-      if (activeIndex < 0) { toast('Bitte zuerst ein Bild auswählen.'); return; }
-      const imageDataUrl = images[activeIndex].dataUrl;
+      if (!key){ toast('Bitte API-Key eingeben.'); return; }
+      if (!imageDataUrl){ toast('Bitte zuerst ein Bild auswählen.'); return; }
 
       setLoading(true, 'Bild wird geprüft…');
-      lastPrecheck = null;
       try {
-        const pre = await callResponses_Precheck(key, model, imageDataUrl);
-        const txt = extractJSONText(pre);
-        const obj = safeParseJSON(txt);
-        if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
-        lastPrecheck = obj;
+        // 1) Vorprüfung (ist es überhaupt Stuhl – großzügig)
+        const pre = await callResponses_Precheck(key, imageDataUrl);
+        const ptxt = extractJSONText(pre);
+        const pobj = safeParseJSON(ptxt);
+        if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
-        let allow = false, markUncertain = false;
-        if (obj.is_stool === 'yes') allow = true;
-        else if (obj.is_stool === 'uncertain' && Number(obj.confidence) >= 0.5) { allow = true; markUncertain = true; }
+        let proceed = false, uncertain = false;
+        if (pobj.is_stool === 'yes') proceed = true;
+        else if (pobj.is_stool === 'uncertain' && Number(pobj.confidence) >= 0.5){ proceed = true; uncertain = true; }
 
-        if (!allow) {
-          setLoading(true, 'Zweitprüfung…');
-          const res2 = await callResponses_Extract(key, model, imageDataUrl);
-          const txt2 = extractJSONText(res2);
-          const vo2 = safeParseJSON(txt2);
-          if (!vo2) throw new Error('Zweitprüfung: kein valides JSON.');
-          if (stoolLikeFromExtract(vo2)) {
-            await renderFinal(vo2, { uncertain: true });
-            setLoading(false); return;
-          } else {
-            setLoading(false);
-            toast('Nicht sicher als Stuhl erkennbar. Bitte besseres Foto (mehr Licht, weniger Spiegelung, näher).');
-            return;
-          }
-        }
-
+        // 2) Extraktion
         setLoading(true, 'Visuelle Analyse…');
-        const res = await callResponses_Extract(key, model, imageDataUrl);
-        const txt3 = extractJSONText(res);
-        const visionObj = safeParseJSON(txt3);
-        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
-        await renderFinal(visionObj, { uncertain: markUncertain });
+        const res = await callResponses_Extract(key, imageDataUrl);
+        const rtxt = extractJSONText(res);
+        const vision = safeParseJSON(rtxt);
+        if (!vision) throw new Error('Analyse gab kein gültiges JSON zurück.');
+        await renderFinal(vision, {uncertain});
+
         setLoading(false);
-      } catch (e) {
+      } catch(e){
         setLoading(false);
-        toast(`Analyse fehlgeschlagen: ${limitErr(e)}`);
+        toast('Analyse fehlgeschlagen: ' + limitErr(e));
       }
     }
 
-    async function renderFinal(visionObj, opts={ uncertain:false }){
-      const observations = {
-        sticky: !!els.obsSticky.checked,
-        smelly: !!els.obsSmelly.checked,
-        watery: !!els.obsWatery.checked
-      };
-      const { percents } = computeScoresFromFeatures(visionObj, observations);
+    async function renderFinal(vo, opts={uncertain:false}){
+      // Scores berechnen (einfach & stabil)
+      const obs = { sticky: els.obsSticky.checked, smelly: els.obsSmelly.checked, watery: els.obsWatery.checked };
+      const { percents } = computeScoresFromFeatures(vo, obs);
 
       // Qualität
-      const q = (visionObj.vision_quality || 'fair').toLowerCase();
+      const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
       els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.uncertain ? ' · unsicher' : '');
       els.qualityBadge.classList.remove('hidden');
       els.qualityBadge.className = 'badge ' + (opts.uncertain ? 'badge-warning' : (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error'));
 
-      // Werte & Warnzeichen
+      // Balken + Warnzeichen + Kurztext
       renderBars(percents);
-      renderRedFlags(visionObj.red_flags);
+      renderRedFlags(vo.red_flags);
+      els.summary.textContent = composePlainSummary(vo);
 
-      // Einfache Kurz-Zusammenfassung
-      els.summary.textContent = composePlainSummary(visionObj, percents);
-
-      // Empfehlungen & Kaufen (immer sichtbar) – mit Top-Empfehlung
+      // Empfehlungen (Top-Empfehlung + 2 weitere)
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 60);
     }
 
-    // Einfache Text-Engine
-    function composePlainSummary(vo, perc){
-      const f = vo?.feature_flags || {};
-      const b = Number(vo?.bristol || 0);
-      const red = !!vo?.red_flags?.present;
-
-      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
-
-      const looksNormal =
-        (b >= 3 && b <= 5) && f.formed_loglike &&
-        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
-        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
-        !f.red_blood && !f.black_tarry;
-
-      if (looksNormal) return 'Wirkt normal: braun und geformt. Kein klarer Hinweis auf Probleme.';
-      if (b === 7) return 'Wässrig – passt zu Durchfall. Viel trinken. Wenn es anhält: abklären.';
-      if (b === 6) return 'Weich/breiig – oft vorübergehend nach bestimmtem Essen.';
-      if (b <= 2)  return 'Hart/trocken – passt zu Verstopfung. Mehr trinken und bewegen.';
-
-      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color)
-        return 'Eher fettig/ölig. Kann auf Fettverdauung hinweisen.';
-      if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber)
-        return 'Eher wässrig/bruchstückig. Häufig nach viel Kohlenhydraten/Obst.';
-      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar. Meist unkritisch.';
-      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos und vorübergehend.';
-      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos und vorübergehend.';
-      return 'Unauffällig, aber nicht eindeutig. Beobachten.';
-    }
-
-    function stoolLikeFromExtract(vo){
-      const f = (vo && vo.feature_flags) || {};
-      const colors = Array.isArray(vo?.detected_colors) ? vo.detected_colors : [];
-      const colorHit = colors.some(c => ['brown','light_brown','dark_brown','yellow','green','tan','clay','black','red'].includes(c));
-      const featureHit = !!(
-        f.formed_loglike || f.watery_liquid || f.many_small_fragments || f.undigested_fiber ||
-        f.oily_sheen || f.mucus_excess || f.visible_fat_globules || f.pale_clay_color ||
-        f.green_color || f.black_tarry || f.red_blood || f.foamy_bubbles || f.floats || f.sticks_to_bowl
-      );
-      const bristolOk = Number.isInteger(vo?.bristol) && vo.bristol >= 1 && vo.bristol <= 7;
-      return (featureHit && bristolOk) || (colorHit && bristolOk);
-    }
-
-    function resetResults(){
-      els.results.classList.add('hidden');
-      els.redFlags.classList.add('hidden');
-      els.redFlags.innerHTML = '';
-      els.bars.innerHTML = '';
-      els.summary.textContent = '';
-      els.recs.classList.add('hidden');
-      els.recsWrap.innerHTML = '';
-    }
-
-    // ---------- Werte-Berechnung ----------
-    function computeScoresFromFeatures(visionObj, obs){
-      const f = visionObj.feature_flags || {};
-      const b = Number(visionObj.bristol || 0);
-      const colors = Array.isArray(visionObj.detected_colors) ? visionObj.detected_colors : [];
-
-      let fat = 0, carb = 0, protein = 0;
-
-      // Fett
-      fat += f.oily_sheen           ? 3.0 : 0;
-      fat += f.visible_fat_globules ? 2.8 : 0;
-      fat += f.sticks_to_bowl       ? 2.4 : 0;
-      fat += f.floats               ? 1.2 : 0;
-      fat += f.pale_clay_color      ? 2.0 : 0;
-      if (colors.includes("yellow")) fat += 0.6;
-
-      // KH
-      carb += f.watery_liquid        ? 3.0 : 0;
-      carb += f.foamy_bubbles        ? 1.6 : 0;
-      carb += f.undigested_fiber     ? 2.0 : 0;
-      carb += f.many_small_fragments ? 1.2 : 0;
-      carb += f.mucus_excess         ? 0.8 : 0;
-      carb += f.green_color          ? 0.7 : 0;
-
-      // Protein
-      protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
-
-      // Bristol
-      if (b === 6) carb += 1.6;
-      if (b === 7) carb += 2.6;
-      if (!f.formed_loglike && b >= 5) carb += 0.8;
-      if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
-
-      // Beobachtungen (kleiner Einfluss)
-      if (obs?.sticky) fat     += 0.5;
-      if (obs?.watery) carb    += 0.5;
-      if (obs?.smelly) protein += 1.5;
-
-      const fatPct     = clamp01(fat / 12.5) * 100;
-      const carbPct    = clamp01(carb / 12.5) * 100;
-      const proteinPct = clamp01(protein / 5.0) * 100;
-
-      return {
-        percents: {
-          fat: Math.round(fatPct),
-          protein: Math.round(proteinPct),
-          carb: Math.round(carbPct)
-        }
-      };
-    }
-    function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
-
-    // ---------- Anzeige ----------
+    // -------- Anzeige --------
     function renderBars(p){
       els.bars.innerHTML = '';
       const rows = [
-        { label:'Kohlenhydrate (KH)', val:p.carb,    cls:'progress-warning' },
-        { label:'Protein',            val:p.protein, cls:'progress-info'    },
-        { label:'Fett',               val:p.fat,     cls:'progress-success' }
+        { label:'Kohlenhydrate (KH)', val:Number(p.carb||0),    cls:'progress-warning' },
+        { label:'Protein',            val:Number(p.protein||0), cls:'progress-info'    },
+        { label:'Fett',               val:Number(p.fat||0),     cls:'progress-success' }
       ];
       rows.forEach(r=>{
         els.bars.insertAdjacentHTML('beforeend', `
@@ -579,7 +368,7 @@
               <span class="font-medium">${r.label}</span>
               <span class="tabular-nums">${r.val}%</span>
             </div>
-            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${r.val}"></progress>
+            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100" aria-valuenow="${r.val}" aria-valuemin="0" aria-valuemax="100"></progress>
           </div>
         `);
       });
@@ -593,7 +382,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'Bitte ärztlich abklären.')}</span>
+            <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
           </div>`;
       } else {
         els.redFlags.classList.add('hidden');
@@ -601,72 +390,64 @@
       }
     }
 
-    // ---------- Empfehlungen & Kaufen (immer zeigen) – mit Top-Empfehlung ----------
+    // -------- Empfehlungen: Top hervorheben --------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
-      const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
+      const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
 
       const items = [
-        { ...PRODUCTS.carb,    score: Number(p.carb    || 0) },
-        { ...PRODUCTS.protein, score: Number(p.protein || 0) },
-        { ...PRODUCTS.fat,     score: Number(p.fat     || 0) }
+        { ...PRODUCTS.carb,    score: Number(p.carb||0) },
+        { ...PRODUCTS.protein, score: Number(p.protein||0) },
+        { ...PRODUCTS.fat,     score: Number(p.fat||0) }
       ];
 
-      // Top-Kategorie bestimmen (bei Gleichstand Reihenfolge KH > Protein > Fett)
+      // Top bestimmen (bei Gleichstand Reihenfolge: KH > Protein > Fett)
       let top = items[0];
-      for (let i=1;i<items.length;i++){
+      for (let i=1; i<items.length; i++){
         if (items[i].score > top.score) top = items[i];
       }
-
-      // Für Darstellung: Top zuerst, dann die übrigen
-      const others = items.filter(it => it.key !== top.key);
+      const others = items.filter(x => x.key !== top.key);
 
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
 
-      // TOP-EMPFEHLUNG – deutlich hervorgehoben
-      const topHref = makeUrl(top.asin);
-      els.recsWrap.insertAdjacentHTML('afterbegin', `
-        <div class="card border-2 border-primary bg-primary/5 shadow-lg">
+      // Top-Empfehlung
+      els.recsWrap.insertAdjacentHTML('beforeend', `
+        <div class="card border-2 border-primary bg-primary/5 shadow">
           <div class="card-body">
             <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div class="flex items-center gap-2">
-                <span class="badge badge-primary">Top-Empfehlung</span>
-                <span class="badge">${escapeHTML(top.subtitle || '')}</span>
-              </div>
+              <span class="badge badge-primary">Top-Empfehlung</span>
               <span class="text-sm text-base-content/70">Score: ${Math.round(top.score)}%</span>
             </div>
             <h4 class="card-title mt-1">${escapeHTML(top.title)}</h4>
-            <p class="text-sm">${escapeHTML(top.note || '')}</p>
+            <p class="text-sm">${escapeHTML(top.note||'')}</p>
             <div class="card-actions justify-end">
-              <a class="btn btn-primary" href="${topHref}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
+              <a class="btn btn-primary" href="${makeUrl(top.asin)}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
             </div>
             <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
           </div>
         </div>
       `);
 
-      // ÜBRIGE – normal, aber mit Badge „Empfehlung“ ab 40 %
+      // Übrige
       others.forEach(it=>{
-        const href = makeUrl(it.asin);
         const good = it.score >= 40;
         const badgeCls = good ? 'badge-success' : 'badge-ghost';
         const badgeTxt = good ? 'Empfehlung' : 'Optional';
-
         els.recsWrap.insertAdjacentHTML('beforeend', `
           <div class="card bg-base-200">
             <div class="card-body">
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div class="flex items-center gap-2">
                   <span class="badge ${badgeCls}">${badgeTxt}</span>
-                  <span class="badge">${escapeHTML(it.subtitle || '')}</span>
+                  <span class="badge">${escapeHTML(it.subtitle||'')}</span>
                 </div>
                 <span class="text-sm text-base-content/60">Score: ${Math.round(it.score)}%</span>
               </div>
               <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
-              <p class="text-sm">${escapeHTML(it.note || '')}</p>
+              <p class="text-sm">${escapeHTML(it.note||'')}</p>
               <div class="card-actions justify-end">
-                <a class="btn btn-primary btn-sm" href="${href}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
+                <a class="btn btn-primary btn-sm" href="${makeUrl(it.asin)}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
               </div>
               <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
@@ -675,140 +456,192 @@
       });
     }
 
-    // ---------- Teilen: kleines PNG (verpixelte Vorschau + Werte) ----------
-    async function createShareImage(percents){
-      if (activeIndex < 0) throw new Error('Kein Bild ausgewählt.');
-
-      // Verpixelte Vorschau 128×128
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = images[activeIndex].dataUrl;
-      await img.decode();
-
-      const S = 16; // Pixelationsgrad
-      const small = document.createElement('canvas');
-      small.width = S; small.height = S;
-      const sctx = small.getContext('2d', { willReadFrequently: true });
-      const side = Math.min(img.naturalWidth, img.naturalHeight);
-      const sx = (img.naturalWidth - side) / 2;
-      const sy = (img.naturalHeight - side) / 2;
-      sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
-
-      const pix = document.createElement('canvas');
-      pix.width = 128; pix.height = 128;
-      const pctx = pix.getContext('2d');
-      pctx.imageSmoothingEnabled = false;
-      pctx.drawImage(small, 0, 0, S, S, 0, 0, pix.width, pix.height);
-
-      // End-Canvas
-      const HEADER = 22;
-      const VALUES_H = 62;
-      const GAP = 4;
-      const out = document.createElement('canvas');
-      out.width = 128;
-      out.height = HEADER + 128 + GAP + VALUES_H;
-      const o = out.getContext('2d');
-
-      // Hintergrund
-      o.fillStyle = '#F3F4F6'; // base-200
-      o.fillRect(0,0,out.width,out.height);
-
-      // Header
-      o.fillStyle = '#111827'; // slate-900
-      o.fillRect(0,0,out.width,HEADER);
-      o.fillStyle = '#F9FAFB'; // slate-50
-      o.font = 'bold 11px Inter, system-ui, sans-serif';
-      o.fillText('Stuhlbild-Analyse', 6, 15);
-
-      // Verpixeltes Bild
-      o.imageSmoothingEnabled = false;
-      o.drawImage(pix, 0, HEADER, 128, 128);
-
-      // Werte-Kapseln
-      o.imageSmoothingEnabled = true;
-      const top = HEADER + 128 + GAP;
-      drawValueRow(o, 'KH', percents.carb, 6, top + 6);
-      drawValueRow(o, 'Protein', percents.protein, 6, top + 24);
-      drawValueRow(o, 'Fett', percents.fat, 6, top + 42);
-
-      return new Promise((resolve, reject)=>{
-        out.toBlob(b=>{
-          if (!b) return reject(new Error('Bild konnte nicht erzeugt werden.'));
-          resolve(b);
-        }, 'image/png', 0.92);
-      });
-    }
-
-    function drawValueRow(ctx, label, val, x, y){
-      const w = 116, h = 8, r = 4;
-      ctx.fillStyle = '#111827';
-      ctx.font = '10px Inter, system-ui, sans-serif';
-      const pct = isFinite(val) ? Math.round(val) : 0;
-      ctx.fillText(`${label} ${pct}%`, x, y-2);
-      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // BG
-      const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
-      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // FG
-    }
-    function roundedRect(ctx, x, y, w, h, r, color){
-      ctx.beginPath();
-      ctx.moveTo(x+r, y);
-      ctx.arcTo(x+w, y, x+w, y+h, r);
-      ctx.arcTo(x+w, y+h, x, y+h, r);
-      ctx.arcTo(x, y+h, x, y, r);
-      ctx.arcTo(x, y, x+w, y, r);
-      ctx.closePath();
-      ctx.fillStyle = color; ctx.fill();
-    }
-
+    // -------- Teilen/Download: kleines PNG mit verpixeltem Bild + Werten --------
     async function onShare(){
       try{
-        const p = readPercentsFromDOM();
+        const p = readPercents();
         const blob = await createShareImage(p);
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (navigator.canShare && navigator.canShare({ files:[file] })){
           await navigator.share({
-            title: 'Stuhlbild-Analyse – Kurzansicht',
-            text: `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+            title: 'Stuhlbild-Analyse',
+            text: `KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
         } else {
           downloadBlob(blob, 'analyse.png');
           toast('Web Share nicht verfügbar – Bild wurde heruntergeladen.', true);
         }
-      } catch(e){
-        toast('Teilen fehlgeschlagen: ' + limitErr(e));
-      }
+      } catch(e){ toast('Teilen fehlgeschlagen: ' + limitErr(e)); }
     }
 
     async function onDownload(){
       try{
-        const p = readPercentsFromDOM();
+        const p = readPercents();
         const blob = await createShareImage(p);
         downloadBlob(blob, 'analyse.png');
         toast('Bild heruntergeladen.', true);
-      } catch(e){
-        toast('Download fehlgeschlagen: ' + limitErr(e));
-      }
+      } catch(e){ toast('Download fehlgeschlagen: ' + limitErr(e)); }
     }
 
-    function readPercentsFromDOM(){
+    function readPercents(){
       const nodes = els.bars.querySelectorAll('progress');
-      const get = (i)=> nodes[i] ? Number(nodes[i].value || 0) : 0;
+      const v = i => nodes[i] ? Number(nodes[i].value||0) : 0;
       // Reihenfolge: KH, Protein, Fett
-      return { carb:get(0), protein:get(1), fat:get(2) };
+      return { carb: v(0), protein: v(1), fat: v(2) };
     }
 
-    function downloadBlob(blob, filename){
+    async function createShareImage(percents){
+      if (!imageDataUrl) throw new Error('Kein Bild.');
+
+      // Bild laden
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imageDataUrl;
+      await img.decode();
+
+      // Verpixeln
+      const S = 16;
+      const small = document.createElement('canvas');
+      small.width = S; small.height = S;
+      const sctx = small.getContext('2d', { willReadFrequently:true });
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      const sx = (img.naturalWidth - side)/2, sy = (img.naturalHeight - side)/2;
+      sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+
+      const pix = document.createElement('canvas');
+      pix.width = 128; pix.height = 128;
+      const pctx = pix.getContext('2d');
+      pctx.imageSmoothingEnabled = false;
+      pctx.drawImage(small, 0, 0, S, S, 0, 0, 128, 128);
+
+      // Endbild
+      const HEADER = 22, VALUES_H = 62, GAP = 4;
+      const out = document.createElement('canvas');
+      out.width = 128; out.height = HEADER + 128 + GAP + VALUES_H;
+      const o = out.getContext('2d');
+
+      // BG + Header
+      o.fillStyle = '#F3F4F6'; o.fillRect(0,0,out.width,out.height);
+      o.fillStyle = '#111827'; o.fillRect(0,0,out.width,HEADER);
+      o.fillStyle = '#F9FAFB'; o.font = 'bold 11px Inter, system-ui, sans-serif';
+      o.fillText('Stuhlbild-Analyse', 6, 15);
+
+      // Bild
+      o.imageSmoothingEnabled = false;
+      o.drawImage(pix, 0, HEADER, 128, 128);
+
+      // Werte
+      o.imageSmoothingEnabled = true;
+      const top = HEADER + 128 + GAP;
+      drawValueRow(o, 'KH', percents.carb, 6, top + 6);
+      drawValueRow(o, 'Protein', percents.protein, 6, top + 24);
+      drawValueRow(o, 'Fett', percents.fat, 6, top + 42);
+
+      return new Promise((resolve,reject)=>{
+        out.toBlob(b => b ? resolve(b) : reject(new Error('PNG fehlgeschlagen')), 'image/png', 0.92);
+      });
+    }
+    function drawValueRow(ctx, label, val, x, y){
+      const w=116,h=8,r=4;
+      ctx.fillStyle='#111827'; ctx.font='10px Inter, system-ui, sans-serif';
+      const pct = isFinite(val) ? Math.round(val) : 0;
+      ctx.fillText(`${label} ${pct}%`, x, y-2);
+      rounded(ctx, x, y+3, w, h, r, '#E5E7EB');
+      const filled = Math.max(0, Math.min(w, Math.round(w*(pct/100))));
+      rounded(ctx, x, y+3, filled, h, r, '#60A5FA');
+    }
+    function rounded(ctx, x, y, w, h, r, color){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath();
+      ctx.fillStyle=color; ctx.fill();
+    }
+    function downloadBlob(blob, name){
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a);
-      a.click();
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
-    // ---------- OpenAI Responses API ----------
-    function extractJSONText(resp) {
+    // -------- Text & Scoring --------
+    function composePlainSummary(vo){
+      const f = vo?.feature_flags || {};
+      const b = Number(vo?.bristol || 0);
+      const red = !!vo?.red_flags?.present;
+      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
+
+      const normal = (b>=3 && b<=5) && f.formed_loglike &&
+        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
+        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
+        !f.red_blood && !f.black_tarry;
+
+      if (normal) return 'Wirkt normal: braun und geformt.';
+      if (b === 7) return 'Wässrig – passt zu Durchfall. Genug trinken.';
+      if (b === 6) return 'Weich/breiig – oft vorübergehend.';
+      if (b <= 2)  return 'Hart/trocken – mehr trinken und bewegen.';
+      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color) return 'Eher fettig/ölig.';
+      if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber) return 'Eher wässrig/bruchstückig.';
+      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar.';
+      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos.';
+      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos.';
+      return 'Unauffällig, aber nicht eindeutig.';
+    }
+
+    function computeScoresFromFeatures(vo, obs){
+      const f = vo?.feature_flags || {};
+      const b = Number(vo?.bristol || 0);
+      const colors = Array.isArray(vo?.detected_colors) ? vo.detected_colors : [];
+
+      let fat = 0, carb = 0, protein = 0;
+      // Fett
+      fat += f.oily_sheen ? 3.0 : 0;
+      fat += f.visible_fat_globules ? 2.8 : 0;
+      fat += f.sticks_to_bowl ? 2.4 : 0;
+      fat += f.floats ? 1.2 : 0;
+      fat += f.pale_clay_color ? 2.0 : 0;
+      if (colors.includes('yellow')) fat += 0.6;
+
+      // KH
+      carb += f.watery_liquid ? 3.0 : 0;
+      carb += f.foamy_bubbles ? 1.6 : 0;
+      carb += f.undigested_fiber ? 2.0 : 0;
+      carb += f.many_small_fragments ? 1.2 : 0;
+      carb += f.mucus_excess ? 0.8 : 0;
+      carb += f.green_color ? 0.7 : 0;
+
+      // Protein
+      protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
+
+      // Bristol
+      if (b === 6) carb += 1.6;
+      if (b === 7) carb += 2.6;
+      if (!f.formed_loglike && b >= 5) carb += 0.8;
+      if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
+
+      // Nutzerhinweise (klein)
+      if (obs?.sticky) fat += 0.5;
+      if (obs?.watery) carb += 0.5;
+      if (obs?.smelly) protein += 1.5;
+
+      const fatPct = clamp01(fat/12.5)*100;
+      const carbPct = clamp01(carb/12.5)*100;
+      const proteinPct = clamp01(protein/5.0)*100;
+
+      return { percents: {
+        fat: Math.round(fatPct),
+        carb: Math.round(carbPct),
+        protein: Math.round(proteinPct)
+      }};
+    }
+    function clamp01(x){ return x<0?0:x>1?1:x; }
+
+    // -------- API-Hilfen --------
+    function extractJSONText(resp){
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
       const texts = [];
       (function walk(x){
@@ -822,85 +655,67 @@
       })(resp?.output);
       return texts.join('\n').trim();
     }
-
-    function safeParseJSON(text) {
+    function safeParseJSON(text){
       if (!text) return null;
-      let cleaned = text.trim();
-      // optionale Codezäune entfernen
-      cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-      // auf erste { und letzte } einkürzen
-      const start = cleaned.indexOf('{');
-      const end = cleaned.lastIndexOf('}');
-      if (start === -1 || end === -1 || end < start) return null;
-      cleaned = cleaned.substring(start, end + 1);
-      try { return JSON.parse(cleaned); } catch { return null; }
+      let s = text.trim();
+      s = s.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const i = s.indexOf('{'), j = s.lastIndexOf('}');
+      if (i<0 || j<i) return null;
+      s = s.slice(i, j+1);
+      try { return JSON.parse(s); } catch { return null; }
     }
-
-    function limitErr(e) {
+    function limitErr(e){
       const s = (e && (e.message || String(e))) || 'Unbekannter Fehler';
-      return s.length > 300 ? s.slice(0,300) + '…' : s;
+      return s.length>300 ? s.slice(0,300)+'…' : s;
     }
 
-    async function callResponses_Precheck(apiKey, model, imageDataUrl){
+    async function callResponses_Precheck(apiKey, imageDataUrl){
       const schema = {
-        type: "object",
-        additionalProperties: false,
-        required: ["is_stool","confidence","notes"],
-        properties: {
-          is_stool: { type:"string", enum:["yes","no","uncertain"] },
-          confidence: { type:"number", minimum:0, maximum:1 },
-          notes: { type:"string" }
+        type:"object", additionalProperties:false,
+        required:["is_stool","confidence","notes"],
+        properties:{
+          is_stool:{type:"string", enum:["yes","no","uncertain"]},
+          confidence:{type:"number", minimum:0, maximum:1},
+          notes:{type:"string"}
         }
       };
-
-      const systemInstruction =
-        "Du prüfst, ob das Foto wahrscheinlich menschlichen Stuhl zeigt. " +
-        "Zähle wässrige Formen (weich/wässrig) und teilweise verdeckte Reste dazu. " +
-        "Antworte NUR mit JSON (Deutsch), Schema siehe Format.";
-
+      const system = "Prüfe, ob das Foto wahrscheinlich menschlichen Stuhl zeigt. Zähle auch weichen/wässrigen Stuhl. Antworte NUR mit JSON (Deutsch).";
       const body = {
-        model,
+        model: "gpt-5",
         input: [
-          { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
-          { role: "user", content: [
-            { type: "input_image", image_url: imageDataUrl, detail: "high" },
-            { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
+          { role:"system", content:[{type:"input_text", text:system}]},
+          { role:"user", content:[
+            { type:"input_image", image_url:imageDataUrl, detail:"high" },
+            { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema aus."}
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolPrecheckDE_simple", strict:true, schema } }
+        text: { format:{ type:"json_schema", name:"PrecheckDE", strict:true, schema } }
       };
-
-      const API_URL = "https://api.openai.com/v1/responses";
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      const res = await fetch("https://api.openai.com/v1/responses", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok){
-        const t = await res.text().catch(()=> '');
-        throw new Error(t || ('HTTP ' + res.status));
-      }
+      if (!res.ok){ throw new Error(await res.text()); }
       return await res.json();
     }
 
-    async function callResponses_Extract(apiKey, model, imageDataUrl){
+    async function callResponses_Extract(apiKey, imageDataUrl){
       const schema = {
-        type: "object",
-        additionalProperties: false,
-        required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
-        properties: {
-          summary: { type: "string" },  // wird lokal überschrieben
-          vision_quality: { type: "string", enum:["good","fair","poor"] },
-          bristol: { type: "integer", minimum:1, maximum:7 },
-          feature_flags: {
-            type: "object",
-            additionalProperties: false,
-            required: [
+        type:"object", additionalProperties:false,
+        required:["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
+        properties:{
+          summary:{type:"string"},
+          vision_quality:{type:"string", enum:["good","fair","poor"]},
+          bristol:{type:"integer", minimum:1, maximum:7},
+          feature_flags:{
+            type:"object", additionalProperties:false,
+            required:[
               "oily_sheen","sticks_to_bowl","floats","watery_liquid","foamy_bubbles",
               "undigested_fiber","pale_clay_color","green_color","black_tarry","red_blood",
               "mucus_excess","visible_fat_globules","many_small_fragments","formed_loglike"
             ],
-            properties: {
+            properties:{
               oily_sheen:{type:"boolean"},
               sticks_to_bowl:{type:"boolean"},
               floats:{type:"boolean"},
@@ -917,47 +732,35 @@
               formed_loglike:{type:"boolean"}
             }
           },
-          detected_colors: {
-            type: "array",
-            items: { type:"string", enum:["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
+          detected_colors:{
+            type:"array",
+            items:{ type:"string", enum:["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
           },
-          red_flags: {
-            type: "object",
-            additionalProperties: false,
-            required: ["present","notes"],
-            properties: { present:{type:"boolean"}, notes:{type:"string"} }
+          red_flags:{
+            type:"object", additionalProperties:false,
+            required:["present","notes"],
+            properties:{ present:{type:"boolean"}, notes:{type:"string"} }
           }
         }
       };
-
-      const instructions = [
-        "Du extrahierst NUR sichtbare Merkmale (keine Gerüche/Symptome erfinden).",
-        "Fülle alle Booleans, setze Bristol (1–7), und markiere klare Warnzeichen.",
-        "Freitexte auf Deutsch, kurz und einfach (max. 2 Sätze, keine Fachwörter)."
-      ].join(" ");
-
+      const system = "Extrahiere NUR sichtbare Merkmale. Setze Bristol (1–7), markiere klare Warnzeichen. Kurze deutsche Sätze.";
       const body = {
-        model,
+        model: "gpt-5",
         input: [
-          { role:"system", content:[{ type:"input_text", text: instructions }]},
+          { role:"system", content:[{type:"input_text", text:system}]},
           { role:"user", content:[
-            { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema für dieses Bild aus."},
-            { type:"input_image", image_url: imageDataUrl, detail: "high" }
+            { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema aus."},
+            { type:"input_image", image_url:imageDataUrl, detail:"high" }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_simple", strict:true, schema } }
+        text: { format:{ type:"json_schema", name:"ExtractDE", strict:true, schema } }
       };
-
-      const API_URL = "https://api.openai.com/v1/responses";
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
+      const res = await fetch("https://api.openai.com/v1/responses", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+apiKey },
         body: JSON.stringify(body)
       });
-      if (!res.ok){
-        const t = await res.text().catch(()=> '');
-        throw new Error(t || ('HTTP ' + res.status));
-      }
+      if (!res.ok){ throw new Error(await res.text()); }
       return await res.json();
     }
   </script>
