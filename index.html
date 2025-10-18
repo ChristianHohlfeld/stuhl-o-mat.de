@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (einfach · mobil · sharing)</title>
+  <title>Stuhlbild-Analyse – Visuelle Auswertung (einfach · mobil · teilen)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -27,8 +27,8 @@
 
   <div class="container mx-auto max-w-3xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
-      <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhl <span class="tracking-tight">ANALyze</span></h1>
-      <p class="text-base-content/70 mt-2">Vision-Auswertung in einfachem Deutsch. <strong>Keine Diagnose.</strong></p>
+      <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhlbild-Analyse</h1>
+      <p class="text-base-content/70 mt-2">Einfache visuelle Auswertung. <strong>Keine Diagnose.</strong></p>
     </header>
 
     <!-- Einstellungen -->
@@ -41,7 +41,7 @@
               <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
               <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key anzeigen/ausblenden">👁️</button>
             </div>
-            <div class="label"><span class="label-text-alt">Lokal gespeichert (nur auf diesem Gerät).</span></div>
+            <div class="label"><span class="label-text-alt">Wird nur lokal gespeichert (dieses Gerät).</span></div>
           </label>
 
           <label class="form-control">
@@ -51,20 +51,20 @@
               <option value="gpt-5-mini">gpt-5-mini</option>
               <option value="gpt-4o">gpt-4o</option>
             </select>
-            <div class="label"><span class="label-text-alt">Falls ein Modell ausfällt, anderes wählen.</span></div>
+            <div class="label"><span class="label-text-alt">Bei Störungen anderes Modell wählen.</span></div>
           </label>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
           <label class="form-control sm:col-span-2">
-            <div class="label"><span class="label-text font-semibold">Affiliate-Tag (.de) – optional</span></div>
+            <div class="label"><span class="label-text font-semibold">Amazon-Affiliate-Tag (.de) – optional</span></div>
             <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
             <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
           </label>
           <div class="form-control">
             <div class="label"><span class="label-text font-semibold">Sprache</span></div>
-            <input class="input input-bordered" value="Deutsch (erzwungen)" disabled />
-            <div class="label"><span class="label-text-alt">Ausgaben sind immer einfaches Deutsch.</span></div>
+            <input class="input input-bordered" value="Deutsch (einfach)" disabled />
+            <div class="label"><span class="label-text-alt">Ausgaben stets in einfachem Deutsch.</span></div>
           </div>
         </div>
 
@@ -80,8 +80,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <div>
-        <div class="font-bold">Sicherheits-Hinweis</div>
-        <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72 h oder Gewichtsverlust bitte ärztlich abklären.</div>
+        <div class="font-bold">Wichtiger Hinweis</div>
+        <div>Kein medizinisches Gerät. Bei Blut, pechschwarzem Stuhl, starken Schmerzen, Fieber, anhaltendem Durchfall &gt;72 h oder Gewichtsverlust bitte ärztlich abklären.</div>
       </div>
     </section>
 
@@ -89,16 +89,15 @@
       <div class="card-body">
         <!-- 1) Bild -->
         <section>
-          <h2 class="card-title justify-center">Schritt 1: Bild wählen</h2>
+          <h2 class="card-title justify-center">Schritt 1: Bild auswählen</h2>
 
-          <!-- Quelle: Galerie oder Kamera -->
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-3">
             <button id="btnGallery" class="btn btn-outline w-full sm:w-auto">📷 Aus Galerie wählen</button>
             <button id="btnCamera"  class="btn btn-ghost w-full sm:w-auto">🎥 Kamera öffnen</button>
             <button id="btnClear"   class="btn btn-ghost w-full sm:w-auto">🧹 Auswahl löschen</button>
           </div>
           <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">
-            Tipp: <em>Galerie</em> öffnet deinen Medienspeicher. <em>Kamera</em> nutzt die Kamera direkt.
+            Tipp: <em>Galerie</em> öffnet den Medienspeicher. <em>Kamera</em> nutzt die Kamera direkt.
           </p>
 
           <!-- Getrennte Inputs: zuverlässiger auf iOS/Android -->
@@ -132,7 +131,7 @@
 
         <!-- 3) Analyse -->
         <section class="mt-6 text-center">
-          <button id="analyze" class="btn btn-primary btn-lg w-full sm:w-auto">ANALyze</button>
+          <button id="analyze" class="btn btn-primary btn-lg w-full sm:w-auto">Analysieren</button>
           <div id="progress" class="mt-3 hidden">
             <span class="loading loading-spinner loading-md text-primary"></span>
             <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
@@ -144,22 +143,22 @@
           <h2 class="card-title justify-center">Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span class="badge badge-success">🧠 Vision (Deutsch)</span>
+            <span class="badge badge-success">🧠 Visuelle Analyse (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
           <!-- Warnzeichen -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Werte (klar & mobilfreundlich) -->
+          <!-- Werte -->
           <div id="bars" class="mt-4 space-y-3"></div>
 
-          <!-- Einfache Kurz-Zusammenfassung -->
+          <!-- Kurz-Zusammenfassung -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
 
-          <!-- Hinweise + Affiliate-Links -->
+          <!-- Empfehlungen + Kaufen -->
           <div id="recs" class="mt-6 hidden">
-            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise & Kaufen</h3>
+            <h3 class="font-semibold mb-3 text-center">Empfehlungen & Kaufen</h3>
             <div id="recsWrap" class="space-y-3"></div>
             <p class="text-[11px] text-base-content/60 mt-2 text-center">
               Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung – Packungsangaben beachten.
@@ -168,12 +167,12 @@
 
           <!-- Sharing -->
           <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Teilen (privat, kleines Bild)</h3>
+            <h3 class="font-semibold text-center mb-2">Teilen (verpixelte Vorschau)</h3>
             <div class="flex flex-wrap gap-2 justify-center">
               <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
               <button id="btnDownload" class="btn btn-ghost btn-sm">Download</button>
             </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN kleines PNG (verpixelte Vorschau + Werte-Kapseln, ohne EXIF).</p>
+            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt ein kleines PNG mit verpixelter Vorschau und Werten (ohne EXIF).</p>
           </div>
 
           <div class="card-actions justify-center mt-6">
@@ -383,8 +382,8 @@
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
       const model = els.model.value.trim();
-      if (!key) { toast('Bitte zuerst den OpenAI API-Key oben eingeben.'); return; }
-      if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
+      if (!key) { toast('Bitte zuerst den OpenAI API-Key eingeben.'); return; }
+      if (activeIndex < 0) { toast('Bitte zuerst ein Bild auswählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
       setLoading(true, 'Bild wird geprüft…');
@@ -411,12 +410,12 @@
             setLoading(false); return;
           } else {
             setLoading(false);
-            toast('Bild als „kein Stuhl“ erkannt. Bitte besseres Foto: mehr Licht, weniger Spiegelung, näher ran.');
+            toast('Nicht sicher als Stuhl erkennbar. Bitte besseres Foto (mehr Licht, weniger Spiegelung, näher).');
             return;
           }
         }
 
-        setLoading(true, 'Vision-Analyse…');
+        setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, model, imageDataUrl);
         const txt3 = extractJSONText(res);
         const visionObj = safeParseJSON(txt3);
@@ -451,7 +450,7 @@
       // Einfache Kurz-Zusammenfassung
       els.summary.textContent = composePlainSummary(visionObj, percents);
 
-      // Konkrete Produkt-Empfehlungen (mit Affiliate-Tag) – immer anzeigen
+      // Empfehlungen & Kaufen (immer sichtbar)
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
@@ -472,19 +471,19 @@
         !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
         !f.red_blood && !f.black_tarry;
 
-      if (looksNormal) return 'Sieht normal aus: braun und geformt. Kein klarer Hinweis auf Probleme.';
-      if (b === 7) return 'Wässrig. Das passt zu Durchfall. Trinken nicht vergessen. Wenn es länger anhält: abklären.';
-      if (b === 6) return 'Weich/breiig. Oft vorübergehend nach bestimmtem Essen. Beobachten.';
-      if (b <= 2)  return 'Hart/trocken. Das passt zu Verstopfung. Auf Flüssigkeit und Bewegung achten.';
+      if (looksNormal) return 'Wirkt normal: braun und geformt. Kein klarer Hinweis auf Probleme.';
+      if (b === 7) return 'Wässrig – passt zu Durchfall. Viel trinken. Wenn es anhält: abklären.';
+      if (b === 6) return 'Weich/breiig – oft vorübergehend nach bestimmtem Essen.';
+      if (b <= 2)  return 'Hart/trocken – passt zu Verstopfung. Mehr trinken und bewegen.';
 
       if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color)
-        return 'Eher fettig/ölig. Das kann auf Fettverdauung hinweisen. Beobachten.';
+        return 'Eher fettig/ölig. Kann auf Fettverdauung hinweisen.';
       if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber)
-        return 'Eher wässrig/bruchstückig. Kommt oft nach viel Kohlenhydraten/Obst vor.';
-      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar. Meist unkritisch. Beobachten.';
-      if (vo?.detected_colors?.includes('green')) return 'Farbe eher grünlich. Häufig harmlos und vorübergehend.';
-      if (vo?.detected_colors?.includes('yellow')) return 'Farbe eher gelblich. Häufig harmlos und vorübergehend.';
-      return 'Unauffällig, aber nicht eindeutig. Einfach beobachten.';
+        return 'Eher wässrig/bruchstückig. Häufig nach viel Kohlenhydraten/Obst.';
+      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar. Meist unkritisch.';
+      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos und vorübergehend.';
+      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos und vorübergehend.';
+      return 'Unauffällig, aber nicht eindeutig. Beobachten.';
     }
 
     function stoolLikeFromExtract(vo){
@@ -543,7 +542,7 @@
       if (!f.formed_loglike && b >= 5) carb += 0.8;
       if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
 
-      // Nutzer-Beobachtungen (klein)
+      // Beobachtungen (kleiner Einfluss)
       if (obs?.sticky) fat     += 0.5;
       if (obs?.watery) carb    += 0.5;
       if (obs?.smelly) protein += 1.5;
@@ -566,9 +565,9 @@
     function renderBars(p){
       els.bars.innerHTML = '';
       const rows = [
-        { label:'KH (Kohlenhydrate)',  val:p.carb,    cls:'progress-warning' },
-        { label:'Protein',             val:p.protein, cls:'progress-info'    },
-        { label:'Fett',                val:p.fat,     cls:'progress-success' }
+        { label:'Kohlenhydrate (KH)', val:p.carb,    cls:'progress-warning' },
+        { label:'Protein',            val:p.protein, cls:'progress-info'    },
+        { label:'Fett',               val:p.fat,     cls:'progress-success' }
       ];
       rows.forEach(r=>{
         els.bars.insertAdjacentHTML('beforeend', `
@@ -591,7 +590,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'bitte ärztlich abklären.')}</span>
+            <span><strong>Warnzeichen:</strong> ${escapeHTML(red.notes || 'Bitte ärztlich abklären.')}</span>
           </div>`;
       } else {
         els.redFlags.classList.add('hidden');
@@ -599,7 +598,7 @@
       }
     }
 
-    // ---------- Konkrete Affiliate-Empfehlungen (immer zeigen) ----------
+    // ---------- Empfehlungen & Kaufen (immer zeigen) ----------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
@@ -638,11 +637,11 @@
       });
     }
 
-    // ---------- Teilen: kleines PNG (verpixelt + Werte) ----------
+    // ---------- Teilen: kleines PNG (verpixelte Vorschau + Werte) ----------
     async function createShareImage(percents){
-      if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
+      if (activeIndex < 0) throw new Error('Kein Bild ausgewählt.');
 
-      // Verpixelte Vorschau 128x128
+      // Verpixelte Vorschau 128×128
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = images[activeIndex].dataUrl;
@@ -681,7 +680,7 @@
       o.fillRect(0,0,out.width,HEADER);
       o.fillStyle = '#F9FAFB'; // slate-50
       o.font = 'bold 11px Inter, system-ui, sans-serif';
-      o.fillText('Stuhl ANALyze', 6, 15);
+      o.fillText('Stuhlbild-Analyse', 6, 15);
 
       // Verpixeltes Bild
       o.imageSmoothingEnabled = false;
@@ -730,7 +729,7 @@
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: 'Stuhl ANALyze – Kurzansicht',
+            title: 'Stuhlbild-Analyse – Kurzansicht',
             text: `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
