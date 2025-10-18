@@ -303,7 +303,7 @@
       if (!precheckOK) {
         setLoading(false);
         toast('Bild wirkt nicht wie typischer Stuhl – Abbruch.', true);
-        return; // **kein** Fallback, kein „Fake“
+        return; // **kein** Fallback, keine Balken
       }
 
       // 2) Hauptanalyse (Responses + JSON Schema strict)
@@ -327,7 +327,7 @@
 
       // 4) Render
       els.modeBadge.classList.remove('hidden');
-      els.modeBadge.textContent = '🧠 Vision-Analyse (deterministisch)';
+      els.modeBadge.textContent = '🧠 Vision-Analyse';
       els.modeBadge.className = 'badge badge-success';
 
       const q = (visionObj.vision_quality || 'fair').toLowerCase();
@@ -356,8 +356,8 @@
       const sum = (visionObj.summary || '').trim();
       els.analysisSummary.textContent = (sum ? sum + ' ' : '') + rationale;
 
-      renderRecommendations([]); // (lassen leer oder generisch)
-      els.recommendationSection.classList.add('hidden'); // optional ausblenden
+      renderRecommendations([]); // (leer/optional)
+      els.recommendationSection.classList.add('hidden'); // hier ausgeblendet
 
       setLoading(false);
       els.resultsSection.classList.remove('hidden');
@@ -378,7 +378,6 @@
       const payload = {
         model: "gpt-4o-mini",
         instructions: "Decide if the user image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
-        seed: 42,
         temperature: 0,
         top_p: 1,
         max_output_tokens: 40,
@@ -413,7 +412,7 @@
 
     // ---------- OpenAI: Extract strictly-bounded visual features ----------
     async function extractVisualFeatures(key, imageDataUrl){
-      // Strenges, deterministisches Schema – nur visuelle Flags
+      // Strenges Schema – nur visuelle Flags
       const schema = {
         type: "object",
         additionalProperties: false,
@@ -425,7 +424,6 @@
           feature_flags: {
             type: "object",
             additionalProperties: false,
-            // Alle hier gelisteten Keys sind required (deterministisch!)
             required: [
               "oily_sheen",
               "sticks_to_bowl",
@@ -487,7 +485,6 @@
       const payload = {
         model: "gpt-4o-mini",
         instructions,
-        seed: 42,
         temperature: 0,
         top_p: 1,
         max_output_tokens: 900,
@@ -543,26 +540,23 @@
       carb += f.mucus_excess        ? 0.6 : 0;
 
       // Protein-Signale (visuell sind schwach/unspezifisch)
-      // Wir nutzen konservativ nur einen kleinen Zuschlag bei überschüssigem Schleim + geformtem Stuhl
       protein += (f.mucus_excess && f.formed_loglike) ? 0.8 : 0;
 
-      // Minimalgewichtung Nutzerangaben (<= ~10% Einfluss gesamt):
-      // Diese Add-ons verändern die Relation leicht, niemals dominant.
-      if (observations.sticky) fat    += 0.5;    // deckt sich oft mit oily_sheen
-      if (observations.watery) carb   += 0.5;    // deckt sich mit watery_liquid
-      if (observations.smelly) protein+= 1.5;    // Geruch ist nicht sichtbar → nur kleiner Bonus
+      // Minimalgewichtung Nutzerangaben (<= ~10 % Einfluss gesamt)
+      if (observations.sticky) fat    += 0.5;
+      if (observations.watery) carb   += 0.5;
+      if (observations.smelly) protein+= 1.5;
 
       const sum = fat + carb + protein;
 
       if (sum <= 0) {
-        // Keine klaren visuellen Marker → ehrlich 0/0/0 und Begründung
         return {
           percents: { fat:0, protein:0, carb:0 },
           rationale: "Keine klaren visuellen Marker erkannt; Angaben reichten nicht für eine Schätzung. Bitte Fotoqualität/Beleuchtung prüfen."
         };
       }
 
-      // Normalisieren auf 100 (deterministisch, größte-Rest-Methode)
+      // Normalisieren auf 100 (größte-Rest)
       const raw = [fat, protein, carb];
       const total = raw.reduce((a,b)=>a+b,0);
       const pctRaw = raw.map(x => x/total*100);
@@ -573,7 +567,6 @@
 
       const percents = { fat:base[0], protein:base[1], carb:base[2] };
 
-      // Kurze Begründung anhand aktivierter Flags
       const why = [];
       if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.pale_clay_color || f.floats) {
         why.push("Fett-Marker: " + [
