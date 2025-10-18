@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (Deutsch · Chart.js · Sharing)</title>
+  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Chart.js · Sharing)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -19,7 +19,7 @@
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
-    canvas { image-rendering: pixelated; } /* für harte Verpixelung beim Share-Canvas */
+    canvas { image-rendering: pixelated; } /* harte Verpixelung beim Share-Canvas */
   </style>
 </head>
 <body class="bg-base-200">
@@ -47,11 +47,10 @@
 
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">Modell</span></div>
-            <!-- Falls gpt-5 bei dir (noch) nicht freigeschaltet ist: auf gpt-4.1 / gpt-4o wechseln -->
+            <!-- Falls gpt-5 (Vision) bei dir nicht freigeschaltet ist: auf gpt-5-mini / gpt-4o wechseln -->
             <select id="model" class="select select-bordered w-full">
               <option value="gpt-5" selected>gpt-5 (Vision & Structured Outputs)</option>
               <option value="gpt-5-mini">gpt-5-mini</option>
-              <option value="gpt-4.1">gpt-4.1</option>
               <option value="gpt-4o">gpt-4o</option>
             </select>
             <div class="label"><span class="label-text-alt">Wechsel möglich, falls ein Modell nicht verfügbar ist.</span></div>
@@ -62,12 +61,12 @@
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">Affiliate-Tag (.de) – optional</span></div>
             <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
-            <div class="label"><span class="label-text-alt">Nur für Links, wird lokal gespeichert.</span></div>
+            <div class="label"><span class="label-text-alt">Nur für Links; wird lokal gespeichert.</span></div>
           </label>
           <div class="form-control">
             <div class="label"><span class="label-text font-semibold">Sprache</span></div>
             <input class="input input-bordered" value="Deutsch (erzwungen)" disabled />
-            <div class="label"><span class="label-text-alt">Antworten der KI sind auf Deutsch fixiert.</span></div>
+            <div class="label"><span class="label-text-alt">KI-Antworten sind auf Deutsch fixiert.</span></div>
           </div>
         </div>
 
@@ -230,13 +229,14 @@
     let images = []; // [{ dataUrl, name }]
     let activeIndex = -1;
     let chartInstance = null; // Chart.js
+    let lastPrecheck = null;  // für Badge/Unsicher
 
     // ---------- Init ----------
     (function init() {
       try {
-        els.apiKey.value   = localStorage.getItem('openai_api_key') || '';
+        els.apiKey.value    = localStorage.getItem('openai_api_key') || '';
         els.amazonTag.value = localStorage.getItem('amazon_tag') || '';
-        els.model.value    = localStorage.getItem('openai_model') || 'gpt-5';
+        els.model.value     = localStorage.getItem('openai_model') || 'gpt-5';
       } catch {}
       els.saveSettings.addEventListener('click', saveSettings);
       els.toggleKey.addEventListener('click', ()=> {
@@ -255,7 +255,6 @@
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
 
-      // Chart vorbereiten
       initChart();
     })();
 
@@ -342,38 +341,65 @@
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
-      // Vorprüfung
+      // 1) Vorprüfung (entschärft + Confidence + detail:"high")
       setLoading(true, 'Validierung des Bildes…');
+      lastPrecheck = null;
       try {
         const pre = await callResponses_Precheck(key, model, imageDataUrl);
         const txt = extractJSONText(pre);
         const obj = safeParseJSON(txt);
         if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
-        if (!obj.is_stool) {
+        lastPrecheck = obj;
+
+        // Fail-open Regel:
+        // - "yes" → weiter
+        // - "uncertain" & confidence >= 0.5 → weiter (mit Unsicherheits-Badge)
+        // - "no" oder "uncertain" sehr niedrig: wir versuchen eine Zweitprüfung über Extract
+        let allow = false;
+        let markUncertain = false;
+        if (obj.is_stool === 'yes') {
+          allow = true;
+        } else if (obj.is_stool === 'uncertain' && Number(obj.confidence) >= 0.5) {
+          allow = true; markUncertain = true;
+        }
+
+        if (!allow) {
+          // 2) Zweitpass (Fail-Open) – schneller Extract; wenn klare Indikatoren → trotzdem analysieren
+          setLoading(true, 'Zweitprüfung…');
+          const res2 = await callResponses_Extract(key, model, imageDataUrl);
+          const txt2 = extractJSONText(res2);
+          const vo2 = safeParseJSON(txt2);
+          if (!vo2) throw new Error('Zweitprüfung: Modell lieferte kein valides JSON.');
+
+          if (stoolLikeFromExtract(vo2)) {
+            // akzeptieren, aber als "unsicher" markieren
+            await renderFinal(vo2, { uncertain: true });
+            setLoading(false);
+            return;
+          } else {
+            setLoading(false);
+            toast('Bild wurde als „kein Stuhl“ eingestuft. Bitte ein besseres Foto: mehr Licht, weniger Wasser/Spiegelung, näher ran.', false);
+            return;
+          }
+        } else {
+          // 3) Normale Extraktion
+          setLoading(true, 'Vision-Analyse…');
+          const res = await callResponses_Extract(key, model, imageDataUrl);
+          const txt = extractJSONText(res);
+          const visionObj = safeParseJSON(txt);
+          if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
+          await renderFinal(visionObj, { uncertain: markUncertain });
           setLoading(false);
-          toast('Das Bild wirkt nicht wie typischer Stuhl. Bitte anderes Foto wählen.');
           return;
         }
-      } catch (e) {
-        setLoading(false);
-        toast(`Validierung fehlgeschlagen: ${limitErr(e)}`);
-        return;
-      }
-
-      // Feature-Extraktion
-      setLoading(true, 'Vision-Analyse…');
-      let visionObj;
-      try {
-        const res = await callResponses_Extract(key, model, imageDataUrl);
-        const txt = extractJSONText(res);
-        visionObj = safeParseJSON(txt);
-        if (!visionObj) throw new Error('Modell lieferte kein valides JSON.');
       } catch (e) {
         setLoading(false);
         toast(`Analyse fehlgeschlagen: ${limitErr(e)}`);
         return;
       }
+    }
 
+    async function renderFinal(visionObj, opts={ uncertain:false }){
       // Scoring
       const observations = {
         sticky: !!els.obsSticky.checked,
@@ -382,12 +408,12 @@
       };
       const { percents, rationale, normalNote } = computeScoresFromFeatures(visionObj, observations);
 
-      // Render: Qualitäts-Badge
+      // Qualität + Unsicherheits-Badge
       const q = (visionObj.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
-      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel;
+      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.uncertain ? ' · unsicher' : '');
       els.qualityBadge.classList.remove('hidden');
-      els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
+      els.qualityBadge.className = 'badge ' + (opts.uncertain ? 'badge-warning' : (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error'));
 
       renderBars(percents);
       renderRedFlags(visionObj.red_flags);
@@ -396,12 +422,23 @@
 
       // Chart aktualisieren
       updateChart(percents);
-
       renderRecs(percents);
 
-      setLoading(false);
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+    }
+
+    function stoolLikeFromExtract(vo){
+      const f = (vo && vo.feature_flags) || {};
+      const colors = Array.isArray(vo?.detected_colors) ? vo.detected_colors : [];
+      const colorHit = colors.some(c => ['brown','light_brown','dark_brown','yellow','green','tan','clay','black','red'].includes(c));
+      const featureHit = !!(
+        f.formed_loglike || f.watery_liquid || f.many_small_fragments || f.undigested_fiber ||
+        f.oily_sheen || f.mucus_excess || f.visible_fat_globules || f.pale_clay_color ||
+        f.green_color || f.black_tarry || f.red_blood || f.foamy_bubbles || f.floats || f.sticks_to_bowl
+      );
+      const bristolOk = Number.isInteger(vo?.bristol) && vo.bristol >= 1 && vo.bristol <= 7;
+      return (featureHit && bristolOk) || (colorHit && bristolOk);
     }
 
     function resetResults(){
@@ -415,7 +452,7 @@
       els.obsSticky.checked = false;
       els.obsSmelly.checked = false;
       els.obsWatery.checked = false;
-      // Chart zurücksetzen
+      lastPrecheck = null;
       updateChart({fat:0, protein:0, carb:0});
     }
 
@@ -423,6 +460,7 @@
     // – Responses API mit 'input_text' & 'input_image'
     // – Structured Outputs via text.format { type:"json_schema", strict:true }
     // – Keine temperature/max_tokens gesetzt
+    // – Vision-Detail explizit: detail:"high" (in image_url-Objekt)
 
     function extractJSONText(resp) {
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
@@ -459,25 +497,30 @@
       const schema = {
         type: "object",
         additionalProperties: false,
-        properties: { is_stool: {type:"boolean"}, notes:{type:"string"} },
-        required: ["is_stool","notes"]
+        required: ["is_stool","confidence","notes"],
+        properties: {
+          is_stool: { type:"string", enum:["yes","no","uncertain"] },
+          confidence: { type:"number", minimum:0, maximum:1 },
+          notes: { type:"string" }
+        }
       };
 
       const systemInstruction =
-        "Du bist ein strenger Bild-Prüfer. " +
-        "Aufgabe: Entscheide, ob das Bild eindeutig menschlichen Stuhl zeigt und sich für eine generische visuelle Analyse eignet. " +
-        "Antworte ausschließlich auf Deutsch. Gib STRICT JSON nach Schema zurück. Sei konservativ.";
+        "Du bist ein strenger, aber fairer Bild-Prüfer. " +
+        "Aufgabe: Entscheide, ob das Bild WAHRSCHEINLICH (≥60 %) menschlichen Stuhl oder Stuhlreste zeigt. " +
+        "Dazu zählen auch wässrige Formen (Bristol 6–7), schwimmende Fragmente, gelbliche/grünliche Masse, teilweise verdeckt. " +
+        "Antworte ausschließlich auf Deutsch. Gib STRICT JSON nach Schema zurück.";
 
       const body = {
         model,
         input: [
           { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
           { role: "user", content: [
-            { type: "input_image", image_url: imageDataUrl },
+            { type: "input_image", image_url: { url: imageDataUrl, detail: "high" } },
             { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolPrecheckDE", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v2", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -557,10 +600,10 @@
           { role:"system", content:[{ type:"input_text", text: instructions }]},
           { role:"user", content:[
             { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema für dieses Bild aus."},
-            { type:"input_image", image_url: imageDataUrl }
+            { type:"input_image", image_url: { url: imageDataUrl, detail: "high" } }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolVisualExtractionDEv1", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v2", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -765,19 +808,16 @@
 
     // ---------- Share (pixeliertes, kleines Vorschaubild 128×128) ----------
     async function createPixelatedShareImage(percents){
-      // 1) Ursprungsbild laden
       if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
       const img = new Image();
-      img.crossOrigin = 'anonymous'; // Canvas sicher
+      img.crossOrigin = 'anonymous';
       img.src = images[activeIndex].dataUrl;
       await img.decode();
 
-      // 2) Sehr klein runter rechnen (z.B. 16×16), dann hochskalieren => harte Pixel
       const small = document.createElement('canvas');
       const S = 16; // Pixelationsgrad
       small.width = S; small.height = S;
-      const sctx = small.getContext('2d', { willReadFrequently: false });
-      // Quadratischer Ausschnitt zentriert
+      const sctx = small.getContext('2d');
       const side = Math.min(img.naturalWidth, img.naturalHeight);
       const sx = (img.naturalWidth - side) / 2;
       const sy = (img.naturalHeight - side) / 2;
@@ -789,7 +829,7 @@
       octx.imageSmoothingEnabled = false;
       octx.drawImage(small, 0, 0, S, S, 0, 0, out.width, out.height);
 
-      // 3) Mini-Overlay mit Prozenten (diskret)
+      // Overlay mit Werten
       octx.imageSmoothingEnabled = true;
       octx.globalAlpha = 0.8;
       octx.fillStyle = '#111827';
@@ -811,18 +851,16 @@
 
     async function onShare(){
       try{
-        // Werte aus aktueller Anzeige lesen (fallback 0)
         const p = readPercentsFromBars();
         const blob = await createPixelatedShareImage(p);
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Stuhl ANALyze – Kurzansicht',
-            text: `Kurz-Vorschau (verpixelt). Werte: Fett ${p.fat}% · Protein ${p.protein}% · KH ${p.carb}%`,
+            text: `Verpixelte Vorschau. Werte: Fett ${p.fat}% · Protein ${p.protein}% · KH ${p.carb}%`,
             files: [file]
           });
         } else {
-          // Fallback: Download
           downloadBlob(blob, 'analyse.png');
           toast('Web Share nicht verfügbar – Bild wurde heruntergeladen.', true);
         }
@@ -843,7 +881,6 @@
     }
 
     function readPercentsFromBars(){
-      // Robust: Werte aus Progress-Elementen ziehen
       const nodes = els.bars.querySelectorAll('progress');
       const get = (i)=> nodes[i] ? Number(nodes[i].value || 0) : 0;
       return { fat:get(0), protein:get(1), carb:get(2) };
