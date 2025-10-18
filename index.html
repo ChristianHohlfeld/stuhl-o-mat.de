@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (einfach · mobil · sharing)</title>
+  <title>Stuhl ANALyze – Vision (mobil · Galerie ODER Kamera · Sharing)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -19,6 +19,7 @@
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
     .pixel { image-rendering: pixelated; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -38,7 +39,7 @@
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
             <div class="join w-full">
-              <input id="apiKey" type="password" inputmode="email" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
+              <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
               <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key anzeigen/ausblenden">👁️</button>
             </div>
             <div class="label"><span class="label-text-alt">Lokal gespeichert (localStorage).</span></div>
@@ -90,11 +91,21 @@
         <!-- 1) Bild -->
         <section>
           <h2 class="card-title justify-center">Schritt 1: Bild wählen</h2>
-          <div class="flex flex-col sm:flex-row items-center gap-3 mt-3">
-            <input id="fileInput" type="file" accept="image/*" multiple capture="environment" class="file-input file-input-bordered w-full sm:w-auto" />
-            <button id="openCamera" class="btn btn-ghost">Kamera öffnen</button>
+
+          <!-- Buttons: GALERIE (öffnet Dateiauswahl) + KAMERA (erzwingt Kamera) -->
+          <div class="flex flex-col xs:flex-row sm:flex-row items-stretch sm:items-center gap-3 mt-3">
+            <button id="btnGallery" class="btn btn-outline w-full sm:w-auto">📷 Aus Galerie wählen</button>
+            <button id="btnCamera" class="btn btn-ghost w-full sm:w-auto">🎥 Kamera öffnen</button>
+            <button id="btnClear" class="btn btn-ghost w-full sm:w-auto">🧹 Auswahl zurücksetzen</button>
           </div>
-          <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">Gutes Licht, neutraler Hintergrund. Keine Personen/Metadaten.</p>
+          <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">
+            Tipp: Auf mobilen Browsern öffnet <em>Galerie</em> deinen Medienspeicher. <em>Kamera</em> nutzt direkt die Kamera.
+          </p>
+
+          <!-- Versteckte Inputs: getrennt, damit iOS/Android sicher die richtige Quelle öffnen -->
+          <input id="inputGallery" type="file" accept="image/*" multiple class="hidden" aria-hidden="true" />
+          <input id="inputCamera"  type="file" accept="image/*" capture="environment" class="hidden" aria-hidden="true" />
+
           <div id="gallery" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-4"></div>
           <div id="previewWrap" class="mt-4 hidden">
             <img id="preview" class="w-full rounded-lg shadow" alt="Vorschau" />
@@ -141,12 +152,10 @@
           <!-- Warnzeichen -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Werte (einfach, klar) -->
-          <div id="bars" class="mt-4 space-y-4">
-            <!-- dynamisch -->
-          </div>
+          <!-- Werte (klar & mobilfreundlich) -->
+          <div id="bars" class="mt-4 space-y-3"></div>
 
-          <!-- Kurzzusammenfassung -->
+          <!-- Zusammenfassung -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
 
           <!-- Hinweise -->
@@ -162,7 +171,7 @@
               <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
               <button id="btnDownload" class="btn btn-ghost btn-sm">Download</button>
             </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN kleines PNG (verpixelte Vorschau + Werte-Balken, ohne EXIF).</p>
+            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN kleines PNG (verpixelte Vorschau + Werte-Kapseln, ohne EXIF).</p>
           </div>
 
           <div class="card-actions justify-center mt-6">
@@ -187,8 +196,13 @@
       amazonTag: document.getElementById('amazonTag'),
       saveSettings: document.getElementById('saveSettings'),
 
-      fileInput: document.getElementById('fileInput'),
-      openCamera: document.getElementById('openCamera'),
+      // NEU: getrennte Inputs für Galerie & Kamera
+      btnGallery: document.getElementById('btnGallery'),
+      btnCamera:  document.getElementById('btnCamera'),
+      btnClear:   document.getElementById('btnClear'),
+      inputGallery: document.getElementById('inputGallery'), // accept="image/*", multiple
+      inputCamera:  document.getElementById('inputCamera'),  // capture="environment"
+
       gallery: document.getElementById('gallery'),
       previewWrap: document.getElementById('previewWrap'),
       preview: document.getElementById('preview'),
@@ -227,6 +241,8 @@
         els.amazonTag.value = localStorage.getItem('amazon_tag') || '';
         els.model.value     = localStorage.getItem('openai_model') || 'gpt-5';
       } catch {}
+
+      // Settings
       els.saveSettings.addEventListener('click', saveSettings);
       els.toggleKey.addEventListener('click', ()=> {
         els.apiKey.type = els.apiKey.type === 'password' ? 'text' : 'password';
@@ -236,14 +252,44 @@
       els.amazonTag.addEventListener('input', debounce(saveSettings, 300));
       els.model.addEventListener('change', saveSettings);
 
-      els.openCamera.addEventListener('click', ()=> els.fileInput.click());
-      els.fileInput.addEventListener('change', onFiles);
+      // NEU: Quelle wählen – Galerie oder Kamera
+      els.btnGallery.addEventListener('click', () => openPicker(els.inputGallery));
+      els.btnCamera.addEventListener('click',  () => openPicker(els.inputCamera));
+      els.btnClear.addEventListener('click', clearSelection);
+
+      // Dateiänderungen separat behandeln
+      els.inputGallery.addEventListener('change', onFilesFromInput);
+      els.inputCamera.addEventListener('change', onFilesFromInput);
+
+      // Analyse & UI
       els.analyze.addEventListener('click', onAnalyze);
       els.reset.addEventListener('click', resetResults);
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
     })();
+
+    // --- Picker robust öffnen (showPicker() → click() Fallback) ---
+    function openPicker(inputEl) {
+      try {
+        if (typeof inputEl.showPicker === 'function') {
+          inputEl.showPicker(); // Android/neuere Browser
+        } else {
+          inputEl.click();      // iOS/Safari Fallback
+        }
+      } catch {
+        inputEl.click();
+      }
+    }
+
+    function clearSelection(){
+      images = [];
+      activeIndex = -1;
+      els.gallery.innerHTML = '';
+      els.previewWrap.classList.add('hidden');
+      resetResults();
+      toast('Auswahl zurückgesetzt', true);
+    }
 
     function saveSettings() {
       try {
@@ -266,9 +312,10 @@
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
     // ---------- Dateien ----------
-    async function onFiles(e){
+    async function onFilesFromInput(e){
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
+      // Falls neue Datei(en) gewählt → ersetzen (mobil-freundlich & simpel)
       images = [];
       for (const f of files) {
         const dataUrl = await fileToDataURL(f).catch(()=> null);
@@ -278,6 +325,9 @@
       renderGallery();
       resetResults();
       if (activeIndex >= 0) showQuestions(true);
+
+      // Eingabe zurücksetzen, damit gleiche Datei erneut wählbar ist
+      e.target.value = '';
     }
 
     function fileToDataURL(file){
@@ -740,7 +790,7 @@
       });
     }
 
-    // ---------- Share-Bild (ein PNG: verpixelte Vorschau + kompakte Werte-Balken) ----------
+    // ---------- Share-Bild (ein PNG: verpixelte Vorschau + kompakte Werte-Kapseln) ----------
     async function createShareImage(percents){
       if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
 
@@ -804,20 +854,15 @@
       });
     }
 
-    // Kleine Kapsel-Balken im Share-Bild
     function drawValueRow(ctx, label, val, x, y){
       const w = 116, h = 8, r = 4;
-      // Label + Prozent
       ctx.fillStyle = '#111827';
       ctx.font = '10px Inter, system-ui, sans-serif';
       const pct = isFinite(val) ? Math.round(val) : 0;
       ctx.fillText(`${label} ${pct}%`, x, y-2);
-
-      // Hintergrund-Kapsel
-      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // slate-200
-      // Vordergrund-Kapsel
+      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // Hintergrund
       const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
-      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // blau
+      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // Vordergrund
     }
 
     function roundedRect(ctx, x, y, w, h, r, color){
@@ -881,6 +926,160 @@
 
     // ---------- Utils ----------
     function showQuestions(show) { els.questions.classList.toggle('hidden', !show); }
+
+    // ---------- Vision / API Calls ----------
+
+    function extractJSONText(resp) {
+      if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
+      const texts = [];
+      (function walk(x){
+        if (!x) return;
+        if (typeof x === 'string') texts.push(x);
+        else if (Array.isArray(x)) x.forEach(walk);
+        else if (typeof x === 'object') {
+          if (typeof x.text === 'string') texts.push(x.text);
+          for (const k in x) if (k !== 'text') walk(x[k]);
+        }
+      })(resp?.output);
+      return texts.join('\n').trim();
+    }
+
+    function safeParseJSON(text) {
+      if (!text) return null;
+      let cleaned = text.trim();
+      cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) return null;
+      cleaned = cleaned.substring(start, end + 1);
+      try { return JSON.parse(cleaned); } catch { return null; }
+    }
+
+    async function callResponses_Precheck(apiKey, model, imageDataUrl){
+      const schema = {
+        type: "object",
+        additionalProperties: false,
+        required: ["is_stool","confidence","notes"],
+        properties: {
+          is_stool: { type:"string", enum:["yes","no","uncertain"] },
+          confidence: { type:"number", minimum:0, maximum:1 },
+          notes: { type:"string" }
+        }
+      };
+
+      const systemInstruction =
+        "Du bist ein strenger, aber fairer Bild-Prüfer. " +
+        "Aufgabe: Entscheide, ob das Bild WAHRSCHEINLICH (≥60 %) menschlichen Stuhl oder Stuhlreste zeigt. " +
+        "Dazu zählen auch wässrige Formen (Bristol 6–7), schwimmende Fragmente, gelbliche/grünliche Masse, teilweise verdeckt. " +
+        "Antworte ausschließlich auf Deutsch. Gib STRICT JSON nach Schema zurück.";
+
+      const body = {
+        model,
+        input: [
+          { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
+          { role: "user", content: [
+            { type: "input_image", image_url: imageDataUrl, detail: "high" },
+            { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
+          ]}
+        ],
+        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v3", strict:true, schema } }
+      };
+
+      const API_URL = "https://api.openai.com/v1/responses";
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok){
+        const t = await res.text().catch(()=> '');
+        throw new Error(t || ('HTTP ' + res.status));
+      }
+      return await res.json();
+    }
+
+    async function callResponses_Extract(apiKey, model, imageDataUrl){
+      const schema = {
+        type: "object",
+        additionalProperties: false,
+        required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
+        properties: {
+          summary: { type: "string" },  // deutsch
+          vision_quality: { type: "string", enum:["good","fair","poor"] },
+          bristol: { type: "integer", minimum:1, maximum:7 },
+          feature_flags: {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "oily_sheen","sticks_to_bowl","floats","watery_liquid","foamy_bubbles",
+              "undigested_fiber","pale_clay_color","green_color","black_tarry","red_blood",
+              "mucus_excess","visible_fat_globules","many_small_fragments","formed_loglike"
+            ],
+            properties: {
+              oily_sheen:{type:"boolean"},
+              sticks_to_bowl:{type:"boolean"},
+              floats:{type:"boolean"},
+              watery_liquid:{type:"boolean"},
+              foamy_bubbles:{type:"boolean"},
+              undigested_fiber:{type:"boolean"},
+              pale_clay_color:{type:"boolean"},
+              green_color:{type:"boolean"},
+              black_tarry:{type:"boolean"},
+              red_blood:{type:"boolean"},
+              mucus_excess:{type:"boolean"},
+              visible_fat_globules:{type:"boolean"},
+              many_small_fragments:{type:"boolean"},
+              formed_loglike:{type:"boolean"}
+            }
+          },
+          detected_colors: {
+            type: "array",
+            items: { type:"string", enum:["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
+          },
+          red_flags: {
+            type: "object",
+            additionalProperties: false,
+            required: ["present","notes"],
+            properties: { present:{type:"boolean"}, notes:{type:"string"} } // deutsch
+          }
+        }
+      };
+
+      const instructions = [
+        "Du bist ein sorgfältiger Vision-Assistent.",
+        "Erkenne NUR visuell Vorhandenes; keine Gerüche/Symptome erfinden.",
+        "Fülle alle feature_flags als boolesche Werte aus dem Bild.",
+        "Bestimme die Bristol-Skala (1..7).",
+        "Weich/breiig (6) bzw. wässrig (7) muss sich in bristol + Flags widerspiegeln.",
+        "Setze vision_quality = good/fair/poor nach Licht/Schärfe/Verdeckung.",
+        "Markiere red_flags, wenn deutlich rotes Blut oder teerartig schwarz.",
+        "Antworte ausschließlich auf Deutsch in allen Freitextfeldern."
+      ].join(" ");
+
+      const body = {
+        model,
+        input: [
+          { role:"system", content:[{ type:"input_text", text: instructions }]},
+          { role:"user", content:[
+            { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema für dieses Bild aus."},
+            { type:"input_image", image_url: imageDataUrl, detail: "high" }
+          ]}
+        ],
+        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v3", strict:true, schema } }
+      };
+
+      const API_URL = "https://api.openai.com/v1/responses";
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok){
+        const t = await res.text().catch(()=> '');
+        throw new Error(t || ('HTTP ' + res.status));
+      }
+      return await res.json();
+    }
 
     // END
   </script>
