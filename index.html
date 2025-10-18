@@ -54,7 +54,7 @@
                 
                 <!-- 1. Upload Section -->
                 <section id="uploadSection" class="w-full">
-                    <h2 class="card-title justify-center mb-4">1. Foto aufnehmen oder hochladen</h2>
+                    <h2 class="card-title justify-center mb-4">Schritt 1: Foto hochladen</h2>
                     <button id="uploadButton" class="btn btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         Foto auswählen
@@ -67,14 +67,40 @@
                     <img id="imagePreview" src="#" alt="Vorschau des Bildes" class="max-w-full max-h-80 mx-auto rounded-lg shadow-md">
                 </div>
 
+                <!-- 2. Questions Section -->
+                <section id="questionsSection" class="hidden my-4 w-full text-left">
+                    <h2 class="card-title justify-center mb-4">Schritt 2: Beobachtungen hinzufügen</h2>
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Klebrig? (Deutet auf Fett)</span> 
+                            <input type="checkbox" id="isSticky" class="checkbox checkbox-primary" />
+                        </label>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Starker Geruch? (Faule Eier / Ammoniak, deutet auf Protein)</span> 
+                            <input type="checkbox" id="smellsStrong" class="checkbox checkbox-primary" />
+                        </label>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Wässrig & Blähungen? (Deutet auf Kohlenhydrate)</span> 
+                            <input type="checkbox" id="isWatery" class="checkbox checkbox-primary" />
+                        </label>
+                    </div>
+                    <div class="card-actions justify-center mt-6">
+                        <button id="startAnalysisButton" class="btn btn-primary">Analyse starten</button>
+                    </div>
+                </section>
+
                 <section id="analysisSection" class="hidden my-8">
-                    <h2 class="text-2xl font-semibold mb-4">2. Echte KI-Analyse läuft...</h2>
+                    <h2 class="text-2xl font-semibold mb-4">Echte KI-Analyse läuft...</h2>
                     <span class="loading loading-spinner loading-lg text-primary"></span>
-                    <p class="text-base-content/70 mt-4">Bitte warten, Ihr Bild wird analysiert...</p>
+                    <p class="text-base-content/70 mt-4">Bitte warten, Ihr Bild und Ihre Angaben werden analysiert...</p>
                 </section>
 
                 <section id="resultsSection" class="hidden my-8 w-full">
-                    <h2 class="card-title justify-center mb-6">3. Analyse-Ergebnis</h2>
+                    <h2 class="card-title justify-center mb-6">Analyse-Ergebnis</h2>
                     <div id="redFlags" class="hidden mb-4"></div>
                     <div id="resultsBarsContainer" class="space-y-4 w-full">
                         <!-- Dynamic bars will be inserted here -->
@@ -83,7 +109,7 @@
                 </section>
 
                 <section id="recommendationSection" class="hidden my-8 w-full">
-                    <h2 class="card-title justify-center mb-6">4. Enzym-Empfehlungen</h2>
+                    <h2 class="card-title justify-center mb-6">Enzym-Empfehlungen</h2>
                     <div id="recommendationsContainer" class="space-y-4"></div>
                 </section>
                 
@@ -110,6 +136,11 @@
             uploadButton: document.getElementById('uploadButton'),
             imagePreviewContainer: document.getElementById('imagePreviewContainer'),
             imagePreview: document.getElementById('imagePreview'),
+            questionsSection: document.getElementById('questionsSection'),
+            startAnalysisButton: document.getElementById('startAnalysisButton'),
+            isSticky: document.getElementById('isSticky'),
+            smellsStrong: document.getElementById('smellsStrong'),
+            isWatery: document.getElementById('isWatery'),
             analysisSection: document.getElementById('analysisSection'),
             resultsSection: document.getElementById('resultsSection'),
             recommendationSection: document.getElementById('recommendationSection'),
@@ -146,6 +177,7 @@
         }
         
         els.stoolImageInput.addEventListener('change', handleImageUpload);
+        els.startAnalysisButton.addEventListener('click', startAnalysis);
         els.resetButton.addEventListener('click', resetApp);
 
         function handleImageUpload(event) {
@@ -157,7 +189,7 @@
                 els.imagePreview.src = currentImageData;
                 els.imagePreviewContainer.classList.remove('hidden');
                 els.uploadSection.classList.add('hidden');
-                startAnalysis();
+                els.questionsSection.classList.remove('hidden'); // Show questions
             };
             reader.readAsDataURL(file);
         }
@@ -173,16 +205,24 @@
                 return;
             }
 
+            // Hide questions and show loader
+            els.questionsSection.classList.add('hidden');
             els.analysisSection.classList.remove('hidden');
             
             try {
+                const userObservations = {
+                    sticky: els.isSticky.checked,
+                    smelly: els.smellsStrong.checked,
+                    watery: els.isWatery.checked,
+                };
+
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${apiKey}`
                     },
-                    body: JSON.stringify(buildPayload(currentImageData))
+                    body: JSON.stringify(buildPayload(currentImageData, userObservations))
                 });
 
                 if (!response.ok) {
@@ -203,9 +243,7 @@
 
             } catch (error) {
                 showToast(`Analyse fehlgeschlagen: ${error.message}`);
-                // Return to upload state on failure
-                els.uploadSection.classList.remove('hidden');
-                els.imagePreviewContainer.classList.add('hidden');
+                resetApp(); // Reset to initial state on failure
             } finally {
                 els.analysisSection.classList.add('hidden');
             }
@@ -281,10 +319,16 @@
         function resetApp() {
             els.uploadSection.classList.remove('hidden');
             els.imagePreviewContainer.classList.add('hidden');
+            els.questionsSection.classList.add('hidden');
             els.analysisSection.classList.add('hidden');
             els.resultsSection.classList.add('hidden');
             els.recommendationSection.classList.add('hidden');
             els.resetButtonContainer.classList.add('hidden');
+            
+            // Reset question checkboxes
+            els.isSticky.checked = false;
+            els.smellsStrong.checked = false;
+            els.isWatery.checked = false;
             
             els.imagePreview.src = '#';
             els.stoolImageInput.value = '';
@@ -296,8 +340,10 @@
             try { return JSON.parse(cleanedText); } catch (e) { return null; }
         }
 
-        function buildPayload(imageDataUrl) {
-            const systemPrompt = `Du bist ein vorsichtiger Gesundheits-Assistent. Analysiere das Stuhl-Foto. Du stellst KEINE Diagnose. Gib nur allgemeine Hinweise zu potenzieller Maldigestion. Bewerte Wahrscheinlichkeiten (0-100) für fat_maldigestion, protein_maldigestion, carb_maldigestion. Erkenne Warnzeichen (Blut, pechschwarz). Gib nicht-medizinische Empfehlungen für Enzyme. OUTPUT AUSSCHLIESSLICH ALS valides JSON-Objekt, das diesem Schema entspricht:
+        function buildPayload(imageDataUrl, observations) {
+            const userContext = `Zusätzliche Beobachtungen des Nutzers: Klebrig: ${observations.sticky ? 'Ja' : 'Nein'}. Starker Geruch: ${observations.smelly ? 'Ja' : 'Nein'}. Wässrig/Blähungen: ${observations.watery ? 'Ja' : 'Nein'}.`;
+
+            const systemPrompt = `Du bist ein vorsichtiger Gesundheits-Assistent. Analysiere das Stuhl-Foto UND berücksichtige die Beobachtungen des Nutzers. ${userContext} Du stellst KEINE Diagnose. Gib nur allgemeine Hinweise zu potenzieller Maldigestion. Bewerte Wahrscheinlichkeiten (0-100) für fat_maldigestion, protein_maldigestion, carb_maldigestion. Erkenne Warnzeichen (Blut, pechschwarz). Gib nicht-medizinische Empfehlungen für Enzyme. OUTPUT AUSSCHLIESSLICH ALS valides JSON-Objekt, das diesem Schema entspricht:
 {"summary":"string","likelihoods":{"fat_maldigestion":"number","protein_maldigestion":"number","carb_maldigestion":"number"},"red_flags":{"present":"boolean","notes":"string"},"recommendations":[{"category":"string","enzyme":"string","notes":"string","amazon_keywords":"string"}]}`;
 
             return {
@@ -310,6 +356,7 @@
                     ]}
                 ],
                 max_tokens: 1000,
+                temperature: 0.1, // Added for consistency
                 response_format: { type: "json_object" }
             };
         }
