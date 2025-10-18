@@ -146,7 +146,7 @@
           <!-- Kurzer Text -->
           <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
-          <!-- Empfehlungen (ohne "& Kaufen") -->
+          <!-- Empfehlungen -->
           <div id="recs" class="mt-5 hidden">
             <h3 class="font-semibold mb-3 text-center">Empfehlungen</h3>
             <p class="text-xs text-base-content/60 text-center -mt-2 mb-3">
@@ -168,7 +168,7 @@
     </main>
 
     <footer class="text-center mt-6 text-xs sm:text-sm text-base-content/60">
-      &copy; 2025 – Konzept von Christian Heinrich Hohlfeld.
+      &copy; 2025
     </footer>
   </div>
 
@@ -215,9 +215,14 @@
     };
 
     // ===== State =====
-    let imageDataUrl = null; // Original für Analyse
-    let pixelViewOn = true;  // Vorschau pixelig?
-    let loadedImg = null;    // HTMLImageElement für Canvas
+    let imageDataUrl = null;            // Original für Analyse
+    let pixelViewOn = true;             // Vorschau pixelig?
+    let loadedImg = null;               // HTMLImageElement für Canvas
+
+    // Analyse-Status & Cache
+    let analyzeInFlight = false;        // Läuft gerade eine Analyse?
+    let lastAnalyzedDataUrl = null;     // Zuletzt erfolgreich analysiertes Bild
+    let lastVisionResult = null;        // Zuletzt gespeichertes Ergebnisobjekt
 
     // ===== Statische Produkte (Amazon /dp/ASIN) =====
     const PRODUCTS = {
@@ -242,8 +247,8 @@
       // Dropzone: Klick, Drag&Drop, Paste
       els.dropzone.addEventListener('click', ()=> els.fileInput.click());
       els.fileInput.addEventListener('change', onFiles);
-      ;['dragenter','dragover'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.add('dragover'); }));
-      ;['dragleave','drop'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.remove('dragover'); }));
+      ['dragenter','dragover'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.add('dragover'); }));
+      ['dragleave','drop'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.remove('dragover'); }));
       els.dropzone.addEventListener('drop', e=>{
         const files = [...(e.dataTransfer?.files||[])];
         if (files.length) handleFile(files[0]);
@@ -302,6 +307,11 @@
       loadedImg.crossOrigin = 'anonymous';
       loadedImg.src = imageDataUrl;
       await loadedImg.decode();
+
+      // Neues Bild ⇒ Cache verwerfen (nur wenn anderes Bild)
+      if (imageDataUrl !== lastAnalyzedDataUrl){
+        lastVisionResult = null;
+      }
 
       pixelViewOn = true;
       els.pixelSwitch.checked = true;
@@ -371,41 +381,67 @@
     function setLoading(on, msg='Analyse läuft…'){
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
-      els.analyze.disabled = on;
+      // Buttons NICHT disabled – State bleibt simpel.
+      analyzeInFlight = !!on;
     }
 
     function resetUI(){
       imageDataUrl = null;
       loadedImg = null;
+      analyzeInFlight = false;
+
       els.previewWrap.classList.add('hidden');
       els.results.classList.add('hidden');
       els.redFlags.classList.add('hidden'); els.redFlags.innerHTML = '';
       els.bars.innerHTML = '';
       els.summary.textContent = '';
       els.recs.classList.add('hidden'); els.recsWrap.innerHTML = '';
+
       setStep(1);
+      // Cache behalten ist ok – er gilt nur für dasselbe Bild.
+      // Beim nächsten anderen Bild wird er oben verworfen.
     }
 
-    // ===== Analyse =====
+    // ===== Analyse (mit Cache & Dedupe) =====
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
       if (!key){ toast('Bitte API-Key eingeben.'); return; }
       if (!imageDataUrl){ toast('Bitte zuerst ein Foto hinzufügen.'); return; }
 
+      // Wenn gleiche Datei schon erfolgreich analysiert wurde: Ergebnis wieder anzeigen.
+      if (lastVisionResult && imageDataUrl === lastAnalyzedDataUrl){
+        els.results.classList.remove('hidden');
+        setStep(3);
+        renderFinal(lastVisionResult, { fromCache:true });
+        toast('Bereits analysiert – Ergebnis angezeigt.', true);
+        return;
+      }
+
+      if (analyzeInFlight){
+        toast('Analyse läuft bereits für dieses Foto…');
+        return;
+      }
+
       setLoading(true, 'Foto wird geprüft…');
       try {
+        // 1) Vorprüfung
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const ptxt = extractJSONText(pre);
         const pobj = safeParseJSON(ptxt);
         if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
+        // 2) Extraktion
         setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, imageDataUrl);
         const rtxt = extractJSONText(res);
         const vision = safeParseJSON(rtxt);
         if (!vision) throw new Error('Analyse gab kein gültiges JSON zurück.');
 
-        await renderFinal(vision);
+        // Cache speichern
+        lastAnalyzedDataUrl = imageDataUrl;
+        lastVisionResult = vision;
+
+        renderFinal(vision, { fromCache:false });
         setStep(3);
         setLoading(false);
       } catch(e){
@@ -414,12 +450,12 @@
       }
     }
 
-    async function renderFinal(vo){
+    async function renderFinal(vo, opts={fromCache:false}){
       const { percents } = computeScoresFromFeatures(vo);
 
       const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
-      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel;
+      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.fromCache ? ' · (aus Zwischenspeicher)' : '');
       els.qualityBadge.classList.remove('hidden');
       els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
 
