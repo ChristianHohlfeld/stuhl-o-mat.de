@@ -59,7 +59,7 @@
           <label class="form-control sm:col-span-2">
             <div class="label"><span class="label-text font-semibold">Affiliate-Tag (.de) – optional</span></div>
             <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
-            <div class="label"><span class="label-text-alt">Nur für Links; wird lokal gespeichert.</span></div>
+            <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
           </label>
           <div class="form-control">
             <div class="label"><span class="label-text font-semibold">Sprache</span></div>
@@ -157,10 +157,13 @@
           <!-- Einfache Kurz-Zusammenfassung -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
 
-          <!-- Hinweise -->
+          <!-- Hinweise + Affiliate-Links -->
           <div id="recs" class="mt-6 hidden">
-            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (nicht medizinisch)</h3>
+            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (frei verkäuflich)</h3>
             <div id="recsWrap" class="space-y-3"></div>
+            <p class="text-[11px] text-base-content/60 mt-2 text-center">
+              Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung – Packungsangaben beachten.
+            </p>
           </div>
 
           <!-- Sharing -->
@@ -233,6 +236,26 @@
     let activeIndex = -1;
     let lastPrecheck = null;
 
+    // ---------- Ausgewählte konkrete Produkte (Amazon.de) ----------
+    // KH → Alpha-Galactosidase; Fett → Pankreatin/Lipase; Protein → Bromelain (GDU)
+    const PRODUCTS = {
+      carb: {
+        title: "sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
+        asin: "B07PTKTLMJ", // KH/Blähungen
+        note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte)."
+      },
+      fat: {
+        title: "PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
+        asin: "B00ELU7SSM", // 20.000 Ph.Eur.-Einheiten Lipase/Kapsel
+        note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten."
+      },
+      protein: {
+        title: "Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
+        asin: "B09C1XV3P3", // hoher GDU-Wert
+        note: "Bei sehr eiweißlastigen Speisen / strengem Geruch."
+      }
+    };
+
     // ---------- Init ----------
     (function init() {
       try {
@@ -287,10 +310,8 @@
 
     // ---------- Datei-Quelle ----------
     function openPicker(inputEl) {
-      try {
-        if (typeof inputEl.showPicker === 'function') inputEl.showPicker();
-        else inputEl.click();
-      } catch { inputEl.click(); }
+      try { if (typeof inputEl.showPicker === 'function') inputEl.showPicker(); else inputEl.click(); }
+      catch { inputEl.click(); }
     }
 
     function clearSelection(){
@@ -424,17 +445,17 @@
       renderBars(percents);
       renderRedFlags(visionObj.red_flags);
 
-      // *** Einfache Kurz-Zusammenfassung ***
+      // Einfache Kurz-Zusammenfassung
       els.summary.textContent = composePlainSummary(visionObj, percents);
 
-      // Hinweise
+      // Konkrete Produkt-Empfehlungen (mit Affiliate-Tag)
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 60);
     }
 
-    // *** Einfache Text-Engine: 1–2 kurze Sätze in Alltagssprache ***
+    // Einfache Text-Engine
     function composePlainSummary(vo, perc){
       const f = vo?.feature_flags || {};
       const b = Number(vo?.bristol || 0);
@@ -443,28 +464,23 @@
       if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
 
       const looksNormal =
-        (b >= 3 && b <= 5) &&
-        f.formed_loglike &&
+        (b >= 3 && b <= 5) && f.formed_loglike &&
         !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
         !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
         !f.red_blood && !f.black_tarry;
 
       if (looksNormal) return 'Sieht normal aus: braun und geformt. Kein klarer Hinweis auf Probleme.';
-
       if (b === 7) return 'Wässrig. Das passt zu Durchfall. Trinken nicht vergessen. Wenn es länger anhält: abklären.';
       if (b === 6) return 'Weich/breiig. Oft vorübergehend nach bestimmtem Essen. Beobachten.';
       if (b <= 2)  return 'Hart/trocken. Das passt zu Verstopfung. Auf Flüssigkeit und Bewegung achten.';
 
       if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color)
         return 'Eher fettig/ölig. Das kann auf Fettverdauung hinweisen. Beobachten.';
-
       if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber)
         return 'Eher wässrig/bruchstückig. Kommt oft nach viel Kohlenhydraten/Obst vor.';
-
       if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar. Meist unkritisch. Beobachten.';
       if (vo?.detected_colors?.includes('green')) return 'Farbe eher grünlich. Häufig harmlos und vorübergehend.';
       if (vo?.detected_colors?.includes('yellow')) return 'Farbe eher gelblich. Häufig harmlos und vorübergehend.';
-
       return 'Unauffällig, aber nicht eindeutig. Einfach beobachten.';
     }
 
@@ -580,26 +596,31 @@
       }
     }
 
-    // ---------- Empfehlungen (optional) ----------
+    // ---------- Konkrete Affiliate-Empfehlungen ----------
     function renderRecs(p){
-      const recs = [];
-      if (p.fat >= 40) recs.push({ enzyme:'Pankreatin/Lipase', notes:'Bei fettigem, schmierigem Stuhl – auf Lipase-Einheiten achten.', amazon_keywords:'Pankreatin magensaftresistent 20000 Lipase' });
-      if (p.carb >= 40) recs.push({ enzyme:'Amylase/α-Glukosidase', notes:'Bei wässrig/breiig und Blähungen nach KH-reichen Mahlzeiten.', amazon_keywords:'Verdauungsenzyme Amylase Glucosidase' });
-      if (p.protein >= 40) recs.push({ enzyme:'Protease/Bromelain', notes:'Bei deutlichem Eiweiß-Hinweis (sehr strenger Geruch).', amazon_keywords:'Bromelain 2400 GDU Protease' });
-      if (!recs.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
-
       const tag = (els.amazonTag.value || '').trim();
+      const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
+
+      const blocks = [];
+      if (p.carb >= 40) blocks.push({ key:'carb', ...PRODUCTS.carb });
+      if (p.fat >= 40)  blocks.push({ key:'fat',  ...PRODUCTS.fat  });
+      if (p.protein >= 40) blocks.push({ key:'protein', ...PRODUCTS.protein });
+
+      if (!blocks.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
+
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
-      recs.forEach(r=>{
-        const link = `https://www.amazon.de/s?k=${encodeURIComponent(r.amazon_keywords)}${tag?`&tag=${encodeURIComponent(tag)}`:''}`;
+
+      blocks.forEach(b=>{
+        const href = makeUrl(b.asin);
         els.recsWrap.insertAdjacentHTML('beforeend', `
           <div class="card bg-base-200">
             <div class="card-body">
-              <h4 class="card-title">${escapeHTML(r.enzyme)}</h4>
-              <p>${escapeHTML(r.notes||'')}</p>
+              <h4 class="card-title">${escapeHTML(b.title)}</h4>
+              <p>${escapeHTML(b.note||'')}</p>
               <div class="card-actions justify-end">
-                <a class="btn btn-primary btn-sm" href="${link}" target="_blank" rel="noopener ${tag?'sponsored':''}">Auf Amazon ansehen</a>
+                <a class="btn btn-primary btn-sm" href="${href}" target="_blank"
+                   rel="noopener sponsored nofollow">Auf Amazon ansehen</a>
               </div>
               <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
@@ -727,7 +748,7 @@
     function readPercentsFromDOM(){
       const nodes = els.bars.querySelectorAll('progress');
       const get = (i)=> nodes[i] ? Number(nodes[i].value || 0) : 0;
-      // Reihenfolge in UI: KH, Protein, Fett
+      // Reihenfolge: KH, Protein, Fett
       return { carb:get(0), protein:get(1), fat:get(2) };
     }
 
@@ -759,7 +780,9 @@
     function safeParseJSON(text) {
       if (!text) return null;
       let cleaned = text.trim();
+      // optionale Codezäune entfernen
       cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      // auf erste { und letzte } einkürzen
       const start = cleaned.indexOf('{');
       const end = cleaned.lastIndexOf('}');
       if (start === -1 || end === -1 || end < start) return null;
@@ -820,7 +843,7 @@
         additionalProperties: false,
         required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
         properties: {
-          summary: { type: "string" },  // wir überschreiben textlich mit composePlainSummary
+          summary: { type: "string" },  // wir überschreiben textlich lokal
           vision_quality: { type: "string", enum:["good","fair","poor"] },
           bristol: { type: "integer", minimum:1, maximum:7 },
           feature_flags: {
