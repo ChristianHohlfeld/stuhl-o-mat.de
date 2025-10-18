@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Chart.js · Sharing)</title>
+  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Pie-Chart · Sharing)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Chart.js (UMD) -->
+  <!-- Chart.js (UMD) für Tortendiagramm -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <!-- Font -->
@@ -19,7 +19,7 @@
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
-    canvas { image-rendering: pixelated; } /* harte Verpixelung beim Share-Canvas */
+    canvas.share-preview { image-rendering: pixelated; } /* harte Verpixelung beim Share-Canvas */
   </style>
 </head>
 <body class="bg-base-200">
@@ -142,14 +142,18 @@
           <!-- Red Flags -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Bars + Chart -->
+          <!-- Bars (lassen wir drin) -->
           <div id="bars" class="mt-4 space-y-4"></div>
 
+          <!-- Pie-Chart -->
           <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Chart</h3>
+            <h3 class="font-semibold text-center mb-2">Tortendiagramm</h3>
             <div class="bg-base-200 p-3 rounded-lg">
-              <canvas id="chartBar" height="160" aria-label="Chart der Schätzwerte"></canvas>
+              <canvas id="chartPie" height="180" aria-label="Tortendiagramm KH/Protein/Fett"></canvas>
             </div>
+            <p class="text-xs text-center text-base-content/60 mt-2">
+              Hinweis: <em>pH</em> lässt sich aus Fotos nicht zuverlässig ableiten. Dargestellt werden KH, Protein und Fett (Verdauungsprobleme).
+            </p>
           </div>
 
           <!-- Summary -->
@@ -219,7 +223,7 @@
       recsWrap: document.getElementById('recsWrap'),
       reset: document.getElementById('reset'),
 
-      chartBar: document.getElementById('chartBar'),
+      chartPie: document.getElementById('chartPie'),
       btnShare: document.getElementById('btnShare'),
       btnDownload: document.getElementById('btnDownload'),
     };
@@ -227,7 +231,7 @@
     // ---------- State ----------
     let images = []; // [{ dataUrl, name }]
     let activeIndex = -1;
-    let chartInstance = null; // Chart.js
+    let pieInstance = null; // Chart.js Pie
     let lastPrecheck = null;  // für Badge/Unsicher
 
     // ---------- Init ----------
@@ -254,7 +258,7 @@
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
 
-      initChart();
+      initPie();
     })();
 
     function saveSettings() {
@@ -340,7 +344,7 @@
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
-      // 1) Vorprüfung (entschärft + Confidence + detail:"high")
+      // 1) Vorprüfung (entschärft + Confidence)
       setLoading(true, 'Validierung des Bildes…');
       lastPrecheck = null;
       try {
@@ -415,8 +419,9 @@
       const sum = (visionObj.summary || '').trim();
       els.summary.textContent = [sum, normalNote, rationale].filter(Boolean).join(' ');
 
-      // Chart aktualisieren
-      updateChart(percents);
+      // Pie-Chart aktualisieren: Reihenfolge KH, Protein, Fett
+      updatePie({ kh: percents.carb, protein: percents.protein, fett: percents.fat });
+
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
@@ -448,13 +453,12 @@
       els.obsSmelly.checked = false;
       els.obsWatery.checked = false;
       lastPrecheck = null;
-      updateChart({fat:0, protein:0, carb:0});
+      updatePie({ kh:0, protein:0, fett:0 });
     }
 
     // ---------- OpenAI Responses API ----------
     // – Für input_image erwartet die API:
     //   { type: "input_image", image_url: "<STRING-URL-ODER-DATA-URL>", detail: "high" }
-    //   (kein Objekt bei image_url!)  -> siehe Images & Vision / Responses API Docs.
     // – Structured Outputs via text.format { type:"json_schema", strict:true }
     // – Keine temperature/max_tokens gesetzt
 
@@ -725,40 +729,40 @@
       });
     }
 
-    // ---------- Chart.js ----------
-    function initChart(){
-      const ctx = els.chartBar.getContext('2d');
-      chartInstance = new Chart(ctx, {
-        type: 'bar',
+    // ---------- Chart.js: PIE ----------
+    function initPie(){
+      const ctx = els.chartPie.getContext('2d');
+      pieInstance = new Chart(ctx, {
+        type: 'pie',
         data: {
-          labels: ['Fett', 'Protein', 'KH'],
+          labels: ['KH', 'Protein', 'Fett (Verdauungsprobleme)'],
           datasets: [{
-            label: 'Mögliche Maldigestion (%)',
             data: [0,0,0]
           }]
         },
         options: {
           responsive: true,
           animation: { duration: 300 },
-          scales: {
-            y: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
-          },
           plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: {
-              label: (ctx)=> `${ctx.parsed.y}%`
-            }}
+            legend: { display: true, position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: (ctx)=> `${ctx.label}: ${ctx.parsed}%`
+              }
+            }
           }
         }
       });
     }
 
-    function updateChart(p){
-      if (!chartInstance) return;
-      chartInstance.data.datasets[0].data = [p.fat||0, p.protein||0, p.carb||0];
-      chartInstance.update();
+    function updatePie(values){
+      if (!pieInstance) return;
+      const { kh=0, protein=0, fett=0 } = values || {};
+      pieInstance.data.datasets[0].data = [kh, protein, fett];
+      pieInstance.update();
     }
 
+    // ---------- Red Flags & Recs ----------
     function renderRedFlags(red){
       if (red?.present) {
         els.redFlags.classList.remove('hidden');
@@ -811,6 +815,7 @@
       await img.decode();
 
       const small = document.createElement('canvas');
+      small.className = 'share-preview';
       const S = 16; // Pixelationsgrad
       small.width = S; small.height = S;
       const sctx = small.getContext('2d');
@@ -820,6 +825,7 @@
       sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
 
       const out = document.createElement('canvas');
+      out.className = 'share-preview';
       out.width = 128; out.height = 128;
       const octx = out.getContext('2d');
       octx.imageSmoothingEnabled = false;
@@ -833,9 +839,9 @@
       octx.globalAlpha = 1;
       octx.fillStyle = '#F9FAFB';
       octx.font = '10px Inter, system-ui, sans-serif';
-      octx.fillText(`Fett ${percents.fat}%`, 6, 104);
+      octx.fillText(`KH ${percents.carb}%`, 6, 104);
       octx.fillText(`Protein ${percents.protein}%`, 6, 116);
-      octx.fillText(`KH ${percents.carb}%`, 70, 104);
+      octx.fillText(`Fett ${percents.fat}%`, 80, 104);
 
       return new Promise((resolve, reject)=>{
         out.toBlob(b=>{
@@ -853,7 +859,7 @@
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Stuhl ANALyze – Kurzansicht',
-            text: `Verpixelte Vorschau. Werte: Fett ${p.fat}% · Protein ${p.protein}% · KH ${p.carb}%`,
+            text: `Verpixelte Vorschau. Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
         } else {
