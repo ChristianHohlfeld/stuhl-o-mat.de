@@ -376,119 +376,136 @@
       els.recommendationSection.classList.remove('hidden');
     }
 
-    // ---------- OpenAI: Precheck via Responses (strict schema) ----------
-    async function precheckIsStool(key, imageDataUrl){
-      const schema = {
-        type:"object", additionalProperties:false,
-        required:["is_stool"],
-        properties:{ is_stool:{ type:"boolean" }, notes:{ type:"string" } }
-      };
-      const payload = {
-        model: "gpt-4o-mini",
-        instructions: "Decide if the image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
-        input: [{
-          role: "user",
-          content: [
-            { type: "input_text", text: "Return JSON only." },
-            { type: "input_image", image_url: imageDataUrl }
-          ]
-        }],
-        temperature: 0,
-        max_output_tokens: 50,
-        text: {
-          format: {
-            type:"json_schema",
-            json_schema:{ name:"StoolPrecheck", schema },
-            strict:true
+ async function precheckIsStool(key, imageDataUrl){
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["is_stool"],
+    properties: { is_stool: { type: "boolean" }, notes: { type: "string" } }
+  };
+
+  const payload = {
+    model: "gpt-4o-mini",
+    instructions: "Decide if the image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text",  text: "Return JSON only." },
+        { type: "input_image", image_url: imageDataUrl }
+      ]
+    }],
+    temperature: 0,
+    max_output_tokens: 50,
+    text: {
+      format: {
+        type: "json_schema",
+        name: "StoolPrecheck",  // ✅ required at this level
+        schema,                 // ✅ use `schema`, not `json_schema`
+        strict: true
+      }
+    }
+  };
+
+  const res = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  const txt  = extractOutputText(data);
+  const obj  = safeParseJSON(txt);
+  return !!(obj && obj.is_stool === true);
+}
+
+
+async function analyzeWithOpenAI(key, imageDataUrl, observations){
+  const instructions = [
+    "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
+    "Analysiere Heuristiken: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
+    `Nutzer-Beobachtungen: klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
+    "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
+    "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
+    "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
+    "Antwort NUR als JSON gemäß Schema."
+  ].join(" ");
+
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["summary","likelihoods","recommendations","confidence","red_flags"],
+    properties: {
+      summary: { type: "string" },
+      likelihoods: {
+        type: "object",
+        additionalProperties: false,
+        required: ["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
+        properties: {
+          fat_maldigestion:     { type: "number", minimum: 0, maximum: 100 },
+          protein_maldigestion: { type: "number", minimum: 0, maximum: 100 },
+          carb_maldigestion:    { type: "number", minimum: 0, maximum: 100 }
+        }
+      },
+      red_flags: {
+        type: "object",
+        additionalProperties: false,
+        required: ["present"],
+        properties: { present: { type: "boolean" }, notes: { type: "string" } }
+      },
+      recommendations: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["enzyme","amazon_keywords"],
+          properties: {
+            category:        { type: "string" },
+            enzyme:          { type: "string" },
+            notes:           { type: "string" },
+            dose_hint:       { type: "string" },
+            amazon_keywords: { type: "string" }
           }
         }
-      };
-      const res = await fetch("https://api.openai.com/v1/responses", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      const txt = extractOutputText(data);
-      const obj = safeParseJSON(txt);
-      return !!(obj && obj.is_stool === true);
+      },
+      confidence: { type: "number", minimum: 0, maximum: 100 }
     }
+  };
 
-    // ---------- OpenAI: Main Analysis (Responses + JSON Schema) ----------
-    async function analyzeWithOpenAI(key, imageDataUrl, observations){
-      const instructions = [
-        "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
-        "Analysiere Heuristiken: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
-        `Nutzer-Beobachtungen: klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
-        "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
-        "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
-        "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
-        "Antwort NUR als JSON gemäß Schema."
-      ].join(" ");
-
-      const schema = {
-        type:"object", additionalProperties:false,
-        required:["summary","likelihoods","recommendations","confidence","red_flags"],
-        properties:{
-          summary:{ type:"string" },
-          likelihoods:{ type:"object", additionalProperties:false, required:["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
-            properties:{
-              fat_maldigestion:{ type:"number", minimum:0, maximum:100 },
-              protein_maldigestion:{ type:"number", minimum:0, maximum:100 },
-              carb_maldigestion:{ type:"number", minimum:0, maximum:100 }
-            }
-          },
-          red_flags:{ type:"object", additionalProperties:false, required:["present"],
-            properties:{ present:{ type:"boolean" }, notes:{ type:"string" } }
-          },
-          recommendations:{ type:"array", items:{
-            type:"object", additionalProperties:false, required:["enzyme","amazon_keywords"],
-            properties:{
-              category:{ type:"string" },
-              enzyme:{ type:"string" },
-              notes:{ type:"string" },
-              dose_hint:{ type:"string" },
-              amazon_keywords:{ type:"string" }
-            }
-          }},
-          confidence:{ type:"number", minimum:0, maximum:100 }
-        }
-      };
-
-      const payload = {
-        model: "gpt-4o-mini",
-        instructions,
-        input: [{
-          role: "user",
-          content: [
-            { type: "input_text", text: "Analysiere das Bild und gib NUR JSON gemäß Schema aus." },
-            { type: "input_image", image_url: imageDataUrl }
-          ]
-        }],
-        temperature: 0,
-        max_output_tokens: 900,
-        text: {
-          format: {
-            type:"json_schema",
-            json_schema:{ name:"StoolDigestiveAssessment", schema },
-            strict:true
-          }
-        }
-      };
-
-      const res = await fetch("https://api.openai.com/v1/responses", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      const txt = extractOutputText(data);
-      const obj = safeParseJSON(txt);
-      if (!obj) throw new Error("Ungültiges Modellformat.");
-      return obj;
+  const payload = {
+    model: "gpt-4o-mini",
+    instructions,
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text",  text: "Analysiere das Bild und gib NUR JSON gemäß Schema aus." },
+        { type: "input_image", image_url: imageDataUrl }
+      ]
+    }],
+    temperature: 0,
+    max_output_tokens: 900,
+    text: {
+      format: {
+        type: "json_schema",
+        name: "StoolDigestiveAssessment", // ✅ required
+        schema,                           // ✅ use `schema`
+        strict: true
+      }
     }
+  };
+
+  const res = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  const txt  = extractOutputText(data);
+  const obj  = safeParseJSON(txt);
+  if (!obj) throw new Error("Ungültiges Modellformat.");
+  return obj;
+}
+
 
     // ---------- Rendering ----------
     function renderBars(fatPct, proteinPct, carbPct){
