@@ -76,7 +76,7 @@
 
           <div id="previewWrap" class="mt-4 hidden">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-base-content/70">Vorschau (nur Anzeige – Analyse nutzt das unveränderte Original)</span>
+              <span class="text-sm text-base-content/70">Vorschau (Anzeige ist verpixelt; Analyse nutzt das Original)</span>
               <button id="togglePixel" class="btn btn-ghost btn-xs">Verpixeln: AN</button>
             </div>
             <div id="previewBox" class="relative">
@@ -204,9 +204,9 @@
     };
 
     // -------- State --------
-    let imageDataUrl = null;   // Original, unverändert – wird für die Analyse genutzt
+    let imageDataUrl = null;   // Original – wird für die Analyse genutzt
     let pixelViewOn = true;    // Vorschau standardmäßig verpixelt
-    let loadedImg = null;      // HTMLImageElement für Preview-Rendern
+    let loadedImg = null;      // HTMLImageElement für Vorschau-Rendern
 
     // -------- Produkte (statisch, direkt /dp/ASIN) --------
     const PRODUCTS = {
@@ -259,9 +259,7 @@
       els.btnDownload.addEventListener('click', onDownload);
     })();
 
-    function saveLocal(k, v){
-      try { localStorage.setItem(k, v); } catch {}
-    }
+    function saveLocal(k, v){ try { localStorage.setItem(k, v); } catch {} }
 
     function toast(msg, ok=false){
       const el = document.createElement('div');
@@ -278,21 +276,17 @@
       imageDataUrl = await fileToDataURL(f).catch(()=> null);
       if (!imageDataUrl){ toast('Konnte das Bild nicht laden.'); return; }
 
-      // Original <img> setzen (für nicht-verpixelte Anzeige)
       els.preview.src = imageDataUrl;
 
-      // Für pixelierte Vorschau ein HTMLImageElement laden
       loadedImg = new Image();
       loadedImg.crossOrigin = 'anonymous';
       loadedImg.src = imageDataUrl;
       await loadedImg.decode();
 
-      // UI sichtbar machen
       els.previewWrap.classList.remove('hidden');
       els.obsBox.classList.remove('hidden');
       els.results.classList.add('hidden');
 
-      // Standard: Pixel-Ansicht aktiv
       pixelViewOn = true;
       els.preview.classList.add('hidden');
       els.previewPix.classList.remove('hidden');
@@ -326,7 +320,7 @@
       }
     }
 
-    // Nur Anzeige! Beeinflusst NICHT die Analyse (die nutzt imageDataUrl)
+    // **Stärker verpixelte Vorschau**
     function drawPixelPreview(img){
       const canvas = els.previewPix;
       const box = els.previewBox;
@@ -337,10 +331,10 @@
       canvas.width = targetW;
       canvas.height = targetH;
 
-      // Kleine Zwischenleinwand
-      const pixelSize = 10; // Größe der "Kacheln" in der Ausgabe
-      const smallW = Math.max(16, Math.round(targetW / pixelSize));
-      const smallH = Math.max(16, Math.round(targetH / pixelSize));
+      // Größere Blockgröße => stärkere Verpixelung (vorher ~10)
+      const pixelSize = 16; // ↑ stärker als zuvor
+      const smallW = Math.max(12, Math.round(targetW / pixelSize));
+      const smallH = Math.max(12, Math.round(targetH / pixelSize));
 
       const small = document.createElement('canvas');
       small.width = smallW; small.height = smallH;
@@ -392,7 +386,7 @@
         const pobj = safeParseJSON(ptxt);
         if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
-        // 2) Extraktion (immer – wir zeigen das Ergebnis nur, wenn sinnvoll)
+        // 2) Extraktion
         setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, imageDataUrl);
         const rtxt = extractJSONText(res);
@@ -411,7 +405,6 @@
       const obs = { sticky: els.obsSticky.checked, smelly: els.obsSmelly.checked, watery: els.obsWatery.checked };
       const { percents } = computeScoresFromFeatures(vo, obs);
 
-      // Qualität
       const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
       els.qualityBadge.textContent = 'Bildqualität: ' + qLabel;
@@ -465,7 +458,6 @@
       }
     }
 
-    // -------- Empfehlungen: Top hervorheben + 2 weitere --------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
@@ -476,7 +468,6 @@
         { ...PRODUCTS.fat,     score: Number(p.fat||0) }
       ];
 
-      // Top bestimmen (bei Gleichstand Reihenfolge: KH > Protein > Fett)
       let top = items[0];
       for (let i=1; i<items.length; i++){
         if (items[i].score > top.score) top = items[i];
@@ -531,7 +522,7 @@
       });
     }
 
-    // -------- Teilen/Download: kleines PNG mit verpixeltem Bild + Werten --------
+    // -------- Teilen/Download: stärker verpixeltes Share-Bild --------
     async function onShare(){
       try{
         const p = readPercents();
@@ -566,23 +557,23 @@
       return { carb: v(0), protein: v(1), fat: v(2) };
     }
 
+    // **Stärker verpixeltes Share-PNG**
     async function createShareImage(percents){
       if (!imageDataUrl) throw new Error('Kein Bild.');
 
-      // Bild laden (Original – wir pixeln nur für das Share-Bild)
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = imageDataUrl;
       await img.decode();
 
-      // Verpixeln (quadratisch 128×128)
-      const S = 16; // grobe Pixel
+      // Kleinere S => gröbere Pixel (vorher 16)
+      const S = 12; // ↓ kleiner -> stärker verpixelt
       const side = 128;
+
       const small = document.createElement('canvas');
       small.width = S; small.height = S;
 
       const sctx = small.getContext('2d', { willReadFrequently:true });
-      // Quadratisch croppen
       const crop = Math.min(img.naturalWidth, img.naturalHeight);
       const sx = (img.naturalWidth - crop)/2;
       const sy = (img.naturalHeight - crop)/2;
@@ -594,23 +585,19 @@
       pctx.imageSmoothingEnabled = false;
       pctx.drawImage(small, 0, 0, S, S, 0, 0, side, side);
 
-      // Endbild 128 Breite + Werte
       const HEADER = 22, VALUES_H = 62, GAP = 4;
       const out = document.createElement('canvas');
       out.width = 128; out.height = HEADER + side + GAP + VALUES_H;
       const o = out.getContext('2d');
 
-      // BG + Header
       o.fillStyle = '#F3F4F6'; o.fillRect(0,0,out.width,out.height);
       o.fillStyle = '#111827'; o.fillRect(0,0,out.width,HEADER);
       o.fillStyle = '#F9FAFB'; o.font = 'bold 11px Inter, system-ui, sans-serif';
       o.fillText('Stuhlbild-Analyse', 6, 15);
 
-      // Verpixeltes Bild
       o.imageSmoothingEnabled = false;
       o.drawImage(pix, 0, HEADER);
 
-      // Werte
       o.imageSmoothingEnabled = true;
       const top = HEADER + side + GAP;
       drawValueRow(o, 'KH', percents.carb, 6, top + 6);
@@ -748,6 +735,7 @@
       return s.length>300 ? s.slice(0,300)+'…' : s;
     }
 
+    // ---- OpenAI Responses API (gpt-5) ----
     async function callResponses_Precheck(apiKey, imageDataUrl){
       const schema = {
         type:"object", additionalProperties:false,
