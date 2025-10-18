@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Pie-Chart · Sharing)</title>
+  <title>Stuhl ANALyze – Vision (Deutsch · zuverlässig · Pie-Chart im Share)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -19,7 +19,7 @@
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
-    canvas.share-preview { image-rendering: pixelated; } /* harte Verpixelung beim Share-Canvas */
+    canvas.share-preview { image-rendering: pixelated; } /* harte Verpixelung */
   </style>
 </head>
 <body class="bg-base-200">
@@ -142,7 +142,7 @@
           <!-- Red Flags -->
           <div id="redFlags" class="hidden mt-2"></div>
 
-          <!-- Bars (lassen wir drin) -->
+          <!-- Bars -->
           <div id="bars" class="mt-4 space-y-4"></div>
 
           <!-- Pie-Chart -->
@@ -167,12 +167,12 @@
 
           <!-- Share -->
           <div class="mt-6">
-            <h3 class="font-semibold text-center mb-2">Teilen (privat, verpixelt)</h3>
+            <h3 class="font-semibold text-center mb-2">Teilen (privat, verpixelt + Pie im Bild)</h3>
             <div class="flex flex-wrap gap-2 justify-center">
               <button id="btnShare" class="btn btn-primary btn-sm">Teilen (Web Share)</button>
               <button id="btnDownload" class="btn btn-ghost btn-sm">Bild herunterladen</button>
             </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt ein kleines, stark verpixeltes Vorschaubild (128×128) ohne EXIF-Daten.</p>
+            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt EIN PNG mit verpixelter Vorschau <u>und</u> dem Pie-Chart (ohne EXIF).</p>
           </div>
 
           <!-- Reset -->
@@ -806,9 +806,11 @@
       });
     }
 
-    // ---------- Share (pixeliertes, kleines Vorschaubild 128×128) ----------
-    async function createPixelatedShareImage(percents){
+    // ---------- Share (ein PNG: Pixel-Vorschau + Pie-Chart) ----------
+    async function createShareImageComposite(percents){
       if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
+
+      // 1) Original als stark verpixelte Quadrat-Vorschau (128x128)
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = images[activeIndex].dataUrl;
@@ -824,25 +826,66 @@
       const sy = (img.naturalHeight - side) / 2;
       sctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
 
-      const out = document.createElement('canvas');
-      out.className = 'share-preview';
-      out.width = 128; out.height = 128;
-      const octx = out.getContext('2d');
-      octx.imageSmoothingEnabled = false;
-      octx.drawImage(small, 0, 0, S, S, 0, 0, out.width, out.height);
+      const pix = document.createElement('canvas');
+      pix.className = 'share-preview';
+      pix.width = 128; pix.height = 128;
+      const pctx = pix.getContext('2d');
+      pctx.imageSmoothingEnabled = false;
+      pctx.drawImage(small, 0, 0, S, S, 0, 0, pix.width, pix.height);
 
-      // Overlay mit Werten
+      // 2) Snapshot des aktuellen Pie-Chart-Canvas
+      const chartCanvas = els.chartPie;
+      if (!chartCanvas) throw new Error('Pie-Chart nicht verfügbar.');
+      // Zielgröße für Chart im Share: 128 x 100 (skalieren)
+      const chartSnapW = 128, chartSnapH = 100;
+
+      // 3) End-Canvas anlegen (128 x (128 + 100 + Kopfzeile))
+      const HEADER = 24; // Titelstreifen
+      const GAP = 4;
+      const out = document.createElement('canvas');
+      out.width = 128;
+      out.height = HEADER + pix.height + GAP + chartSnapH;
+      const octx = out.getContext('2d');
+
+      // Hintergrund hell
+      octx.fillStyle = '#F3F4F6';
+      octx.fillRect(0,0,out.width,out.height);
+
+      // Kopfzeile
+      octx.fillStyle = '#111827';
+      octx.fillRect(0,0,out.width,HEADER);
+      octx.fillStyle = '#F9FAFB';
+      octx.font = 'bold 11px Inter, system-ui, sans-serif';
+      octx.fillText('Stuhl ANALyze – Kurzansicht', 6, 16);
+
+      // Verpixeltes Bild platzieren
+      octx.imageSmoothingEnabled = false;
+      octx.drawImage(pix, 0, HEADER, 128, 128);
+
+      // Werte-Overlay auf dem Pixelbild
       octx.imageSmoothingEnabled = true;
       octx.globalAlpha = 0.8;
       octx.fillStyle = '#111827';
-      octx.fillRect(0, 90, 128, 38);
+      octx.fillRect(0, HEADER + 128 - 38, 128, 38);
       octx.globalAlpha = 1;
       octx.fillStyle = '#F9FAFB';
       octx.font = '10px Inter, system-ui, sans-serif';
-      octx.fillText(`KH ${percents.carb}%`, 6, 104);
-      octx.fillText(`Protein ${percents.protein}%`, 6, 116);
-      octx.fillText(`Fett ${percents.fat}%`, 80, 104);
+      octx.fillText(`KH ${percents.carb}%`, 6, HEADER + 128 - 24);
+      octx.fillText(`Protein ${percents.protein}%`, 6, HEADER + 128 - 12);
+      octx.fillText(`Fett ${percents.fat}%`, 78, HEADER + 128 - 24);
 
+      // Pie-Chart unten hinein rendern (skaliert)
+      // Trick: Chart direkt in Zielcanvas zeichnen (drawImage auf Canvas)
+      const ch = chartCanvas;
+      octx.imageSmoothingEnabled = true;
+      octx.drawImage(ch, 0, 0, ch.width, ch.height, 0, HEADER + 128 + GAP, chartSnapW, chartSnapH);
+
+      // Hinweiszeile unter dem Pie (klein)
+      octx.fillStyle = '#6B7280';
+      octx.font = '9px Inter, system-ui, sans-serif';
+      octx.fillText('pH nicht aus Foto ableitbar', 6, HEADER + 128 + GAP + chartSnapH - 4);
+
+      // PNG erzeugen
       return new Promise((resolve, reject)=>{
         out.toBlob(b=>{
           if (!b) return reject(new Error('Bild konnte nicht erzeugt werden.'));
@@ -854,12 +897,15 @@
     async function onShare(){
       try{
         const p = readPercentsFromBars();
-        const blob = await createPixelatedShareImage(p);
+        // Sicherheit: Pie auf aktuelle Werte bringen (falls Share direkt gedrückt)
+        updatePie({ kh: p.carb, protein: p.protein, fett: p.fat });
+
+        const blob = await createShareImageComposite(p);
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Stuhl ANALyze – Kurzansicht',
-            text: `Verpixelte Vorschau. Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+            text: `Vorschau mit Pie: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
         } else {
@@ -874,7 +920,8 @@
     async function onDownload(){
       try{
         const p = readPercentsFromBars();
-        const blob = await createPixelatedShareImage(p);
+        updatePie({ kh: p.carb, protein: p.protein, fett: p.fat });
+        const blob = await createShareImageComposite(p);
         downloadBlob(blob, 'analyse.png');
         toast('Bild heruntergeladen.', true);
       } catch(e){
