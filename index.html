@@ -17,6 +17,9 @@
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .pixel { image-rendering: pixelated; }
+    /* Kleine, zentrierte Vorschau: max 220px Breite, egal wie groß der Bildschirm ist */
+    #previewBox { width: 220px; margin-left: auto; margin-right: auto; }
+    #previewPix, #preview { width: 220px; height: auto; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -76,12 +79,12 @@
 
           <div id="previewWrap" class="mt-4 hidden">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-base-content/70">Vorschau (Anzeige ist verpixelt; Analyse nutzt das Original)</span>
+              <span class="text-sm text-base-content/70">Kleine Vorschau (Anzeige kann verpixelt sein; Analyse nutzt das Original)</span>
               <button id="togglePixel" class="btn btn-ghost btn-xs">Verpixeln: AN</button>
             </div>
             <div id="previewBox" class="relative">
-              <canvas id="previewPix" class="w-full rounded-lg shadow"></canvas>
-              <img id="preview" class="w-full rounded-lg shadow hidden" alt="Vorschau" />
+              <canvas id="previewPix" class="rounded-lg shadow block"></canvas>
+              <img id="preview" class="rounded-lg shadow hidden" alt="Vorschau" />
             </div>
           </div>
         </section>
@@ -320,21 +323,22 @@
       }
     }
 
-    // **Stärker verpixelte Vorschau**
+    // **Kleine, stärker verpixelte Vorschau**
     function drawPixelPreview(img){
       const canvas = els.previewPix;
-      const box = els.previewBox;
-      const targetW = Math.max(240, Math.min(box.clientWidth || 600, 1000));
+
+      // Feste Zielbreite für kleine Vorschau
+      const targetW = 220; // immer klein
       const ratio = img.naturalHeight / img.naturalWidth;
-      const targetH = Math.round(targetW * ratio);
+      const targetH = Math.max(1, Math.round(targetW * ratio));
 
       canvas.width = targetW;
       canvas.height = targetH;
 
-      // Größere Blockgröße => stärkere Verpixelung (vorher ~10)
-      const pixelSize = 16; // ↑ stärker als zuvor
-      const smallW = Math.max(12, Math.round(targetW / pixelSize));
-      const smallH = Math.max(12, Math.round(targetH / pixelSize));
+      // Große Blockgröße => stärkere Verpixelung
+      const pixelSize = 18; // kräftig verpixelt
+      const smallW = Math.max(10, Math.round(targetW / pixelSize));
+      const smallH = Math.max(10, Math.round(targetH / pixelSize));
 
       const small = document.createElement('canvas');
       small.width = smallW; small.height = smallH;
@@ -522,7 +526,7 @@
       });
     }
 
-    // -------- Teilen/Download: stärker verpixeltes Share-Bild --------
+    // -------- Teilen/Download (verpixeltes Share-PNG) --------
     async function onShare(){
       try{
         const p = readPercents();
@@ -557,7 +561,6 @@
       return { carb: v(0), protein: v(1), fat: v(2) };
     }
 
-    // **Stärker verpixeltes Share-PNG**
     async function createShareImage(percents){
       if (!imageDataUrl) throw new Error('Kein Bild.');
 
@@ -566,8 +569,8 @@
       img.src = imageDataUrl;
       await img.decode();
 
-      // Kleinere S => gröbere Pixel (vorher 16)
-      const S = 12; // ↓ kleiner -> stärker verpixelt
+      // Stärker verpixelt, quadratisch 128×128
+      const S = 12; // kleine Quelle -> grobe Pixel
       const side = 128;
 
       const small = document.createElement('canvas');
