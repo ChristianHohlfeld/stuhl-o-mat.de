@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stuhl AI Analyzer</title>
+    <!-- DaisyUI and Tailwind CSS from CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Minimal style to apply the font */
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-base-200">
+
+    <!-- Toast Container for notifications -->
+    <div id="toast-container" class="toast toast-top toast-center z-50"></div>
+
+    <div class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhl AI Analyzer</h1>
+            <p class="text-base-content/70 mt-2">Ein Konzept von Christian Heinrich Hohlfeld</p>
+        </header>
+
+        <!-- Settings Section with DaisyUI Collapse -->
+        <div class="collapse bg-base-100 shadow-md mb-8">
+            <input type="checkbox" /> 
+            <div class="collapse-title text-xl font-medium">
+                Einstellungen (API-Schlüssel & Affiliate-Tag)
+            </div>
+            <div class="collapse-content">
+                <div class="form-control">
+                    <label class="label" for="apiKey"><span class="label-text">OpenAI API Key</span></label>
+                    <input type="password" id="apiKey" class="input input-bordered w-full" placeholder="sk-...">
+                    <label class="label"><span class="label-text-alt">Ihr Schlüssel wird nur lokal im Browser gespeichert.</span></label>
+                </div>
+                <div class="form-control">
+                    <label class="label" for="amazonTag"><span class="label-text">Amazon Affiliate-Tag (.de)</span></label>
+                    <input type="text" id="amazonTag" class="input input-bordered w-full" placeholder="IhrTag-21">
+                </div>
+                <button id="saveSettings" class="btn btn-primary mt-4">Speichern</button>
+            </div>
+        </div>
+
+        <!-- Main Content Area as DaisyUI Card -->
+        <main id="app" class="card bg-base-100 shadow-xl">
+            <div class="card-body items-center text-center">
+                
+                <!-- 1. Upload Section -->
+                <section id="uploadSection" class="w-full">
+                    <h2 class="card-title justify-center mb-4">1. Foto aufnehmen oder hochladen</h2>
+                    <button id="uploadButton" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Foto auswählen
+                    </button>
+                    <input type="file" id="stoolImage" accept="image/*" class="hidden" capture="environment">
+                    <p class="text-sm text-base-content/60 mt-2">Nehmen Sie ein Foto auf oder wählen Sie eines aus Ihrer Galerie.</p>
+                </section>
+                
+                <div id="imagePreviewContainer" class="hidden my-6">
+                    <img id="imagePreview" src="#" alt="Vorschau des Bildes" class="max-w-full max-h-80 mx-auto rounded-lg shadow-md">
+                </div>
+
+                <section id="analysisSection" class="hidden my-8">
+                    <h2 class="text-2xl font-semibold mb-4">2. Echte KI-Analyse läuft...</h2>
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                    <p class="text-base-content/70 mt-4">Bitte warten, Ihr Bild wird analysiert...</p>
+                </section>
+
+                <section id="resultsSection" class="hidden my-8 w-full">
+                    <h2 class="card-title justify-center mb-6">3. Analyse-Ergebnis</h2>
+                    <div id="redFlags" class="hidden mb-4"></div>
+                    <div id="resultsBarsContainer" class="space-y-4 w-full">
+                        <!-- Dynamic bars will be inserted here -->
+                    </div>
+                     <p id="analysisSummary" class="mt-6 text-center text-base-content font-medium bg-base-200 p-4 rounded-lg"></p>
+                </section>
+
+                <section id="recommendationSection" class="hidden my-8 w-full">
+                    <h2 class="card-title justify-center mb-6">4. Enzym-Empfehlungen</h2>
+                    <div id="recommendationsContainer" class="space-y-4"></div>
+                </section>
+                
+                <div id="resetButtonContainer" class="hidden card-actions justify-center mt-8">
+                     <button id="resetButton" class="btn btn-ghost">Neue Analyse starten</button>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-8">
+            <p class="text-sm text-base-content/60">&copy; 2025 - Ein Konzept von Christian Heinrich Hohlfeld.</p>
+            <div role="alert" class="alert alert-warning mt-4 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <span>Dies ist kein medizinisches Gerät. Die KI-Analyse ist experimentell. Konsultieren Sie bei gesundheitlichen Problemen immer einen Arzt.</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const els = {
+            toastContainer: document.getElementById('toast-container'),
+            uploadSection: document.getElementById('uploadSection'),
+            stoolImageInput: document.getElementById('stoolImage'),
+            uploadButton: document.getElementById('uploadButton'),
+            imagePreviewContainer: document.getElementById('imagePreviewContainer'),
+            imagePreview: document.getElementById('imagePreview'),
+            analysisSection: document.getElementById('analysisSection'),
+            resultsSection: document.getElementById('resultsSection'),
+            recommendationSection: document.getElementById('recommendationSection'),
+            recommendationsContainer: document.getElementById('recommendationsContainer'),
+            resetButtonContainer: document.getElementById('resetButtonContainer'),
+            resetButton: document.getElementById('resetButton'),
+            apiKey: document.getElementById('apiKey'),
+            amazonTag: document.getElementById('amazonTag'),
+            saveSettings: document.getElementById('saveSettings'),
+            analysisSummary: document.getElementById('analysisSummary'),
+            redFlags: document.getElementById('redFlags'),
+            resultsBarsContainer: document.getElementById('resultsBarsContainer')
+        };
+
+        let currentImageData = null;
+
+        (function init() {
+            try {
+                els.apiKey.value = localStorage.getItem('openaiApiKey') || '';
+                els.amazonTag.value = localStorage.getItem('amazonAffiliateTag') || 'hohlfeld-21';
+            } catch (e) { console.error("Could not load from localStorage", e); }
+        })();
+
+        els.saveSettings.addEventListener('click', () => {
+            try {
+                localStorage.setItem('openaiApiKey', els.apiKey.value.trim());
+                localStorage.setItem('amazonAffiliateTag', els.amazonTag.value.trim());
+                showToast('Einstellungen gespeichert!', false);
+            } catch (e) { showToast('Einstellungen konnten nicht gespeichert werden.'); }
+        });
+
+        if (els.uploadButton) {
+            els.uploadButton.addEventListener('click', () => els.stoolImageInput.click());
+        }
+        
+        els.stoolImageInput.addEventListener('change', handleImageUpload);
+        els.resetButton.addEventListener('click', resetApp);
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                currentImageData = e.target.result;
+                els.imagePreview.src = currentImageData;
+                els.imagePreviewContainer.classList.remove('hidden');
+                els.uploadSection.classList.add('hidden');
+                startAnalysis();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function startAnalysis() {
+            const apiKey = els.apiKey.value.trim();
+            if (!apiKey) {
+                showToast('Bitte geben Sie zuerst Ihren OpenAI API Key in den Einstellungen ein.');
+                return;
+            }
+            if (!currentImageData) {
+                showToast('Bitte wählen Sie ein Bild aus.');
+                return;
+            }
+
+            els.analysisSection.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(buildPayload(currentImageData))
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(errorBody.error.message);
+                }
+                
+                const result = await response.json();
+                const text = result.choices?.[0]?.message?.content;
+                if (!text) throw new Error("Keine gültige Antwort von der API erhalten.");
+
+                const json = safeParseJSON(text);
+                if (json) {
+                    renderResults(json);
+                } else {
+                   throw new Error("Die API-Antwort hatte ein ungültiges Format.");
+                }
+
+            } catch (error) {
+                showToast(`Analyse fehlgeschlagen: ${error.message}`);
+                // Return to upload state on failure
+                els.uploadSection.classList.remove('hidden');
+                els.imagePreviewContainer.classList.add('hidden');
+            } finally {
+                els.analysisSection.classList.add('hidden');
+            }
+        }
+        
+        function renderResults(data) {
+            els.analysisSummary.textContent = data.summary || 'Keine Zusammenfassung verfügbar.';
+            
+            if (data.red_flags?.present) {
+                els.redFlags.innerHTML = `
+                    <div role="alert" class="alert alert-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span><strong>Warnzeichen:</strong> ${data.red_flags.notes}</span>
+                    </div>`;
+                els.redFlags.classList.remove('hidden');
+            } else {
+                 els.redFlags.classList.add('hidden');
+            }
+
+            els.resultsBarsContainer.innerHTML = '';
+            const barConfig = {
+                fat_maldigestion: { label: "Fett-Verdauung", colorClass: "progress-success" },
+                protein_maldigestion: { label: "Protein-Verdauung", colorClass: "progress-info" },
+                carb_maldigestion: { label: "Kohlenhydrat-Verdauung", colorClass: "progress-warning" },
+            };
+
+            for (const key in barConfig) {
+                const value = data.likelihoods?.[key] || 0;
+                const config = barConfig[key];
+                els.resultsBarsContainer.innerHTML += `
+                    <div class="w-full">
+                        <div class="flex justify-between mb-1 text-sm"><span>${config.label}</span><span>${value}% Problematik</span></div>
+                        <progress class="progress ${config.colorClass} w-full" value="${value}" max="100"></progress>
+                    </div>`;
+            }
+
+            els.recommendationsContainer.innerHTML = '';
+            if (data.recommendations?.length > 0) {
+                 data.recommendations.forEach(rec => {
+                    const tag = els.amazonTag.value.trim() || 'hohlfeld-21';
+                    const affiliateLink = `https://www.amazon.de/s?k=${encodeURIComponent(rec.amazon_keywords)}&tag=${tag}`;
+                    
+                    els.recommendationsContainer.innerHTML += `
+                        <div class="card bg-base-200 shadow-md w-full">
+                            <div class="card-body">
+                                <h3 class="card-title">${rec.enzyme}</h3>
+                                <p>${rec.notes || ''}</p>
+                                <div class="card-actions justify-end">
+                                    <a href="${affiliateLink}" target="_blank" rel="noopener sponsored" class="btn btn-primary btn-sm">
+                                       Auf Amazon ansehen
+                                    </a>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                els.recommendationSection.classList.remove('hidden');
+            }
+           
+            els.resultsSection.classList.remove('hidden');
+            els.resetButtonContainer.classList.remove('hidden');
+        }
+
+        function showToast(message, isError = true) {
+            const alertClass = isError ? 'alert-error' : 'alert-success';
+            const toastElement = document.createElement('div');
+            toastElement.className = `alert ${alertClass} shadow-lg`;
+            toastElement.innerHTML = `<div><span>${message}</span></div>`;
+            
+            els.toastContainer.appendChild(toastElement);
+            setTimeout(() => toastElement.remove(), 5000);
+        }
+
+        function resetApp() {
+            els.uploadSection.classList.remove('hidden');
+            els.imagePreviewContainer.classList.add('hidden');
+            els.analysisSection.classList.add('hidden');
+            els.resultsSection.classList.add('hidden');
+            els.recommendationSection.classList.add('hidden');
+            els.resetButtonContainer.classList.add('hidden');
+            
+            els.imagePreview.src = '#';
+            els.stoolImageInput.value = '';
+            currentImageData = null;
+        }
+        
+        function safeParseJSON(text) {
+            const cleanedText = text.trim().replace(/^```json\s*/, '').replace(/```$/, '');
+            try { return JSON.parse(cleanedText); } catch (e) { return null; }
+        }
+
+        function buildPayload(imageDataUrl) {
+            const systemPrompt = `Du bist ein vorsichtiger Gesundheits-Assistent. Analysiere das Stuhl-Foto. Du stellst KEINE Diagnose. Gib nur allgemeine Hinweise zu potenzieller Maldigestion. Bewerte Wahrscheinlichkeiten (0-100) für fat_maldigestion, protein_maldigestion, carb_maldigestion. Erkenne Warnzeichen (Blut, pechschwarz). Gib nicht-medizinische Empfehlungen für Enzyme. OUTPUT AUSSCHLIESSLICH ALS valides JSON-Objekt, das diesem Schema entspricht:
+{"summary":"string","likelihoods":{"fat_maldigestion":"number","protein_maldigestion":"number","carb_maldigestion":"number"},"red_flags":{"present":"boolean","notes":"string"},"recommendations":[{"category":"string","enzyme":"string","notes":"string","amazon_keywords":"string"}]}`;
+
+            return {
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: [
+                        { type: "text", text: "Analysiere dieses Foto gemäß der System-Instruktion und gib NUR das JSON-Objekt aus." },
+                        { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
+                    ]}
+                ],
+                max_tokens: 1000,
+                response_format: { type: "json_object" }
+            };
+        }
+    </script>
+</body>
+</html>
+
