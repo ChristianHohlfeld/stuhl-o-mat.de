@@ -94,9 +94,9 @@
                 </section>
 
                 <section id="analysisSection" class="hidden my-8">
-                    <h2 id="analysisTitle" class="text-2xl font-semibold mb-4">Analyse läuft...</h2>
+                    <h2 class="text-2xl font-semibold mb-4">Echte KI-Analyse läuft...</h2>
                     <span class="loading loading-spinner loading-lg text-primary"></span>
-                    <p id="analysisText" class="text-base-content/70 mt-4">Bitte warten...</p>
+                    <p class="text-base-content/70 mt-4">Bitte warten, Ihr Bild und Ihre Angaben werden analysiert...</p>
                 </section>
 
                 <section id="resultsSection" class="hidden my-8 w-full">
@@ -142,8 +142,6 @@
             smellsStrong: document.getElementById('smellsStrong'),
             isWatery: document.getElementById('isWatery'),
             analysisSection: document.getElementById('analysisSection'),
-            analysisTitle: document.getElementById('analysisTitle'),
-            analysisText: document.getElementById('analysisText'),
             resultsSection: document.getElementById('resultsSection'),
             recommendationSection: document.getElementById('recommendationSection'),
             recommendationsContainer: document.getElementById('recommendationsContainer'),
@@ -179,7 +177,7 @@
         }
         
         els.stoolImageInput.addEventListener('change', handleImageUpload);
-        els.startAnalysisButton.addEventListener('click', performFullAnalysis);
+        els.startAnalysisButton.addEventListener('click', startAnalysis);
         els.resetButton.addEventListener('click', resetApp);
 
         function handleImageUpload(event) {
@@ -188,63 +186,28 @@
             const reader = new FileReader();
             reader.onload = e => {
                 currentImageData = e.target.result;
-                validateImageContent();
+                els.imagePreview.src = currentImageData;
+                els.imagePreviewContainer.classList.remove('hidden');
+                els.uploadSection.classList.add('hidden');
+                els.questionsSection.classList.remove('hidden'); // Show questions
             };
             reader.readAsDataURL(file);
         }
 
-        async function validateImageContent() {
+        async function startAnalysis() {
             const apiKey = els.apiKey.value.trim();
             if (!apiKey) {
                 showToast('Bitte geben Sie zuerst Ihren OpenAI API Key in den Einstellungen ein.');
                 return;
             }
-
-            setLoadingState(true, 'Validierung läuft...', 'Das Bild wird kurz geprüft...');
-            
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify(buildPrecheckPayload(currentImageData))
-                });
-
-                if (!response.ok) {
-                    const errorBody = await response.json();
-                    throw new Error(errorBody.error.message);
-                }
-
-                const result = await response.json();
-                const json = safeParseJSON(result.choices?.[0]?.message?.content);
-
-                if (json && json.is_stool) {
-                    // Success, move to questions
-                    els.imagePreview.src = currentImageData;
-                    els.imagePreviewContainer.classList.remove('hidden');
-                    els.uploadSection.classList.add('hidden');
-                    els.questionsSection.classList.remove('hidden');
-                } else {
-                    showToast("Das Bild scheint kein Stuhlgang zu sein. Bitte laden Sie ein geeignetes Foto hoch.");
-                    resetApp();
-                }
-
-            } catch (error) {
-                showToast(`Validierung fehlgeschlagen: ${error.message}`);
-                resetApp();
-            } finally {
-                setLoadingState(false);
-            }
-        }
-
-        async function performFullAnalysis() {
-            const apiKey = els.apiKey.value.trim();
-            if (!apiKey || !currentImageData) {
-                resetApp();
+            if (!currentImageData) {
+                showToast('Bitte wählen Sie ein Bild aus.');
                 return;
             }
 
+            // Hide questions and show loader
             els.questionsSection.classList.add('hidden');
-            setLoadingState(true, 'Echte KI-Analyse läuft...', 'Ihr Bild und Ihre Angaben werden analysiert...');
+            els.analysisSection.classList.remove('hidden');
             
             try {
                 const userObservations = {
@@ -255,7 +218,10 @@
 
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
                     body: JSON.stringify(buildPayload(currentImageData, userObservations))
                 });
 
@@ -277,9 +243,9 @@
 
             } catch (error) {
                 showToast(`Analyse fehlgeschlagen: ${error.message}`);
-                resetApp();
+                resetApp(); // Reset to initial state on failure
             } finally {
-                setLoadingState(false);
+                els.analysisSection.classList.add('hidden');
             }
         }
         
@@ -340,16 +306,6 @@
             els.resetButtonContainer.classList.remove('hidden');
         }
 
-        function setLoadingState(isLoading, title = '', text = '') {
-            if (isLoading) {
-                els.analysisTitle.textContent = title;
-                els.analysisText.textContent = text;
-                els.analysisSection.classList.remove('hidden');
-            } else {
-                els.analysisSection.classList.add('hidden');
-            }
-        }
-
         function showToast(message, isError = true) {
             const alertClass = isError ? 'alert-error' : 'alert-success';
             const toastElement = document.createElement('div');
@@ -369,6 +325,7 @@
             els.recommendationSection.classList.add('hidden');
             els.resetButtonContainer.classList.add('hidden');
             
+            // Reset question checkboxes
             els.isSticky.checked = false;
             els.smellsStrong.checked = false;
             els.isWatery.checked = false;
@@ -379,25 +336,8 @@
         }
         
         function safeParseJSON(text) {
-            if (!text) return null;
             const cleanedText = text.trim().replace(/^```json\s*/, '').replace(/```$/, '');
             try { return JSON.parse(cleanedText); } catch (e) { return null; }
-        }
-
-        function buildPrecheckPayload(imageDataUrl) {
-            const systemPrompt = `Is the user-provided image a photograph of human stool? Respond ONLY with a valid JSON object following this schema: {"is_stool": boolean}. Be strict. If it is food, diarrhea, vomit, or anything else, respond with false.`;
-            return {
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: [
-                        { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
-                    ]}
-                ],
-                max_tokens: 50,
-                temperature: 0,
-                response_format: { type: "json_object" }
-            };
         }
 
         function buildPayload(imageDataUrl, observations) {
@@ -423,4 +363,3 @@
     </script>
 </body>
 </html>
-
