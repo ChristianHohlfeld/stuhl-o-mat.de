@@ -314,7 +314,7 @@
         return;
       }
 
-      // Scoring (deterministisch, nur Bild + minimale User-Gewichtung)
+      // Scoring
       const observations = {
         sticky: !!els.obsSticky.checked,
         smelly: !!els.obsSmelly.checked,
@@ -386,9 +386,9 @@
         temperature: 0,
         max_output_tokens: 120,
         input: [
-          { role: "system", content: [{ type: "text", text: "You strictly decide if the image is a human stool photo. Return only JSON per schema." }]},
+          { role: "system", content: [{ type: "input_text", text: "You strictly decide if the image is a human stool photo. Return only JSON per schema." }]},
           { role: "user", content: [
-            { type: "input_image", image_url: imageDataUrl, detail: "low" },
+            { type: "input_image", image_url: imageDataUrl },
             { type: "input_text", text: "Return JSON only." }
           ]}
         ],
@@ -463,10 +463,10 @@
         temperature: 0,
         max_output_tokens: 900,
         input: [
-          { role:"system", content:[{ type:"text", text: instructions }]},
+          { role:"system", content:[{ type:"input_text", text: instructions }]},
           { role:"user", content:[
             { type:"input_text", text:"Return JSON only per schema for this image."},
-            { type:"input_image", image_url: imageDataUrl, detail:"high" }
+            { type:"input_image", image_url: imageDataUrl }
           ]}
         ],
         text: { format: { type:"json_schema", name:"StoolVisualExtractionV1", strict:true, schema } }
@@ -507,7 +507,7 @@
       // PROTEIN – visuelle Marker (schwach)
       protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
 
-      // Bristol-Information (rein visuell)
+      // Bristol (rein visuell)
       if (b === 6) carb += 1.6;
       if (b === 7) carb += 2.6;
       if (!f.formed_loglike && b >= 5) carb += 0.8;
@@ -527,9 +527,9 @@
       );
 
       // Mapping auf 0..100 je Kategorie (keine Zwangs-Summe!)
-      const fatPct     = clamp01(fat / 12.5) * 100;   // typ. Max ~12
-      const carbPct    = clamp01(carb / 12.5) * 100;  // typ. Max ~12
-      const proteinPct = clamp01(protein / 5.0) * 100; // protein selten hoch
+      const fatPct     = clamp01(fat / 12.5) * 100;
+      const carbPct    = clamp01(carb / 12.5) * 100;
+      const proteinPct = clamp01(protein / 5.0) * 100;
 
       const percents = {
         fat: Math.round(fatPct),
@@ -632,9 +632,6 @@
         `);
       });
     }
-
-    // ---------- Utils ----------
-    function showQuestions(show){ els.questions.classList.toggle('hidden', !show); }
 
   </script>
 </body>
