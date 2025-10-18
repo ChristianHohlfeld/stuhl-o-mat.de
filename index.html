@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhlbild-Analyse – Einfach & verständlich</title>
+  <title>Stuhlbild-Auswertung – Einfach & verständlich</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -16,10 +16,17 @@
 
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    /* Kleine, zentrierte Vorschau */
-    #previewBox { width: 220px; margin-left: auto; margin-right: auto; position: relative; }
-    #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-    /* Overlay-Toggle direkt AUF dem Canvas */
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed hsl(var(--b3));
+      border-radius: .75rem;
+      transition: .15s ease;
+    }
+    .dropzone.dragover { border-color: hsl(var(--p)); background: hsl(var(--p) / .06); }
+    /* Vorschau – kleine, zentrierte Fläche */
+    #previewBox { width: 220px; margin-inline: auto; position: relative; }
+    #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: hsl(var(--b2)); }
+    /* Overlay-Button direkt auf dem Canvas */
     #overlayToggle { position: absolute; top: .5rem; right: .5rem; }
   </style>
 </head>
@@ -29,7 +36,7 @@
 
   <div class="container mx-auto max-w-xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
-      <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhlbild-Analyse</h1>
+      <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhlbild-Auswertung</h1>
       <p class="text-base-content/70 mt-2">Einfache visuelle Auswertung. <strong>Keine Diagnose.</strong></p>
     </header>
 
@@ -49,12 +56,13 @@
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">Amazon-Affiliate-Tag (.de) – optional</span></div>
             <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
+            <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
           </label>
         </div>
       </div>
     </section>
 
-    <!-- Hinweis -->
+    <!-- Sicherheit -->
     <section class="alert alert-warning shadow mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z" />
@@ -67,68 +75,92 @@
 
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body">
-        <!-- 1) Bild -->
+        <!-- Stepper -->
+        <ul class="steps w-full mb-2">
+          <li class="step step-primary" id="step-1">Foto</li>
+          <li class="step" id="step-2">Analyse</li>
+          <li class="step" id="step-3">Ergebnis</li>
+        </ul>
+
+        <!-- 1) Bild wählen -->
         <section>
-          <h2 class="card-title justify-center">1. Bild auswählen</h2>
+          <h2 class="card-title justify-center">1. Foto hinzufügen</h2>
 
-          <div class="mt-3 text-center">
-            <button id="btnPick" class="btn btn-primary w-full">Bild auswählen</button>
-            <input id="fileInput" type="file" accept="image/*" class="hidden" />
-            <p class="text-xs text-base-content/60 mt-2">Tipp: gutes Licht, nicht zu weit weg.</p>
+          <!-- Dropzone -->
+          <div id="dropzone" class="dropzone mt-3 p-4 text-center cursor-pointer select-none">
+            <div class="flex flex-col items-center gap-2">
+              <div class="avatar placeholder">
+                <div class="bg-base-300 text-base-content rounded-full w-12">
+                  <span>📷</span>
+                </div>
+              </div>
+              <div class="font-semibold">Hier tippen/klicken, ziehen & ablegen, oder <span class="kbd kbd-xs">Strg/Cmd</span> + <span class="kbd kbd-xs">V</span> zum Einfügen</div>
+              <div class="text-xs text-base-content/60">Tipps: gutes Licht, näher ran, kein Blitz.</div>
+            </div>
           </div>
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
 
+          <!-- Kleine Vorschau mit Canvas + Toggle AUF dem Bild + Schalter darunter -->
           <div id="previewWrap" class="mt-4 hidden">
-            <div class="text-sm text-base-content/70 text-center mb-2">Kleine Vorschau. Analyse nutzt immer das unveränderte Original.</div>
             <div id="previewBox">
               <canvas id="previewCanvas" aria-label="Vorschau"></canvas>
               <button id="overlayToggle" class="btn btn-xs btn-neutral/80">Pixel: AN</button>
             </div>
+            <div class="form-control mt-2">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input id="pixelSwitch" type="checkbox" class="toggle toggle-primary" checked />
+                <span class="label-text">Verpixelte Vorschau (nur Anzeige)</span>
+              </label>
+            </div>
+            <div class="mt-2 flex gap-2">
+              <button id="btnReplace" class="btn btn-outline btn-sm w-full">Foto ersetzen</button>
+              <button id="btnClear" class="btn btn-ghost btn-sm w-full">Zurücksetzen</button>
+            </div>
           </div>
         </section>
 
-        <!-- Optionale Beobachtungen -->
-        <section id="obsBox" class="mt-4 hidden">
-          <details class="bg-base-200 rounded-lg p-3">
-            <summary class="cursor-pointer select-none">Optionale Beobachtungen</summary>
-            <div class="grid grid-cols-1 gap-2 mt-3">
-              <label class="label cursor-pointer justify-start gap-3">
-                <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
-                <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
-              </label>
-              <label class="label cursor-pointer justify-start gap-3">
-                <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
-                <span class="label-text">Sehr strenger Geruch? (Protein)</span>
-              </label>
-              <label class="label cursor-pointer justify-start gap-3">
-                <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
-                <span class="label-text">Wässrig + Blähungen? (KH)</span>
-              </label>
-            </div>
-          </details>
-        </section>
-
         <!-- 2) Analyse -->
-        <section class="mt-4 text-center">
-          <button id="analyze" class="btn btn-primary btn-lg w-full">Analysieren</button>
+        <section class="mt-5 text-center">
+          <h2 class="card-title justify-center">2. Analysieren</h2>
+          <p class="text-xs text-base-content/60 mt-1">Optional: kurze Beobachtungen ankreuzen</p>
+
+          <div class="grid grid-cols-1 gap-2 mt-3">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
+              <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
+              <span class="label-text">Sehr strenger Geruch? (Protein)</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
+              <span class="label-text">Wässrig + Blähungen? (KH)</span>
+            </label>
+          </div>
+
+          <button id="analyze" class="btn btn-primary btn-lg w-full mt-3">Analyse starten</button>
           <div id="progress" class="mt-3 hidden">
-            <span class="loading loading-spinner loading-md text-primary"></span>
+            <progress class="progress progress-primary w-full"></progress>
             <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
           </div>
         </section>
 
-        <!-- Ergebnis -->
+        <!-- 3) Ergebnis -->
         <section id="results" class="hidden mt-6">
-          <h2 class="card-title justify-center">Ergebnis</h2>
+          <h2 class="card-title justify-center">3. Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span class="badge badge-success">Visuelle Analyse (Deutsch)</span>
+            <span class="badge badge-success">Visuelle Auswertung (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
           <div id="redFlags" class="hidden mt-2"></div>
 
+          <!-- Werte -->
           <div id="bars" class="mt-4 space-y-3"></div>
 
+          <!-- Kurzer Text -->
           <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
           <!-- Empfehlungen & Kaufen -->
@@ -140,17 +172,15 @@
             </p>
           </div>
 
-          <!-- Teilen/Download -->
-          <div class="mt-5">
-            <div class="flex flex-wrap gap-2 justify-center">
-              <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
-              <button id="btnDownload" class="btn btn-ghost btn-sm">Download</button>
-            </div>
-            <p class="text-xs text-center text-base-content/60 mt-2">Erzeugt ein kleines PNG (verpixelte Vorschau + Werte).</p>
+          <!-- Quick Actions -->
+          <div class="mt-5 flex flex-wrap gap-2 justify-center">
+            <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
+            <button id="btnCopy" class="btn btn-ghost btn-sm">Text kopieren</button>
+            <button id="btnDownload" class="btn btn-ghost btn-sm">PNG speichern</button>
           </div>
 
           <div class="card-actions justify-center mt-4">
-            <button id="reset" class="btn btn-ghost">Neues Bild</button>
+            <button id="reset" class="btn btn-ghost">Neues Foto</button>
           </div>
         </section>
       </div>
@@ -162,22 +192,28 @@
   </div>
 
   <script>
-    // -------- Elemente --------
+    // ===== Elemente =====
     const els = {
       toasts: document.getElementById('toasts'),
       apiKey: document.getElementById('apiKey'),
       toggleKey: document.getElementById('toggleKey'),
       amazonTag: document.getElementById('amazonTag'),
 
-      btnPick: document.getElementById('btnPick'),
+      step1: document.getElementById('step-1'),
+      step2: document.getElementById('step-2'),
+      step3: document.getElementById('step-3'),
+
+      dropzone: document.getElementById('dropzone'),
       fileInput: document.getElementById('fileInput'),
 
       previewWrap: document.getElementById('previewWrap'),
       previewBox: document.getElementById('previewBox'),
       previewCanvas: document.getElementById('previewCanvas'),
       overlayToggle: document.getElementById('overlayToggle'),
+      pixelSwitch: document.getElementById('pixelSwitch'),
+      btnReplace: document.getElementById('btnReplace'),
+      btnClear: document.getElementById('btnClear'),
 
-      obsBox: document.getElementById('obsBox'),
       obsSticky: document.getElementById('obsSticky'),
       obsSmelly: document.getElementById('obsSmelly'),
       obsWatery: document.getElementById('obsWatery'),
@@ -193,25 +229,26 @@
       summary: document.getElementById('summary'),
       recs: document.getElementById('recs'),
       recsWrap: document.getElementById('recsWrap'),
-      reset: document.getElementById('reset'),
 
       btnShare: document.getElementById('btnShare'),
+      btnCopy: document.getElementById('btnCopy'),
       btnDownload: document.getElementById('btnDownload'),
+      reset: document.getElementById('reset'),
     };
 
-    // -------- State --------
-    let imageDataUrl = null;   // Original – für Analyse
-    let pixelViewOn = true;    // Vorschau: standardmäßig pixelig
-    let loadedImg = null;      // HTMLImageElement für Canvas-Rendering
+    // ===== State =====
+    let imageDataUrl = null; // Original für Analyse
+    let pixelViewOn = true;  // Vorschau pixelig?
+    let loadedImg = null;    // HTMLImageElement für Canvas
 
-    // -------- Produkte (statisch, /dp/ASIN) --------
+    // ===== Statische Produkte (Amazon /dp/ASIN) =====
     const PRODUCTS = {
       carb:    { key:"carb",    title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).", subtitle:"KH-Enzyme" },
       fat:     { key:"fat",     title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)", asin:"B00ELU7SSM", note:"Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.", subtitle:"Fett-Enzyme" },
       protein: { key:"protein", title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln", asin:"B09C1XV3P3", note:"Bei eiweißlastigen Speisen / sehr strengem Geruch.", subtitle:"Protein-Enzyme" }
     };
 
-    // -------- Init --------
+    // ===== Init =====
     (function init(){
       try {
         els.apiKey.value    = localStorage.getItem('openai_api_key') || '';
@@ -224,12 +261,32 @@
         els.toggleKey.textContent = (els.apiKey.type === 'password') ? '👁️' : '🙈';
       });
 
-      els.btnPick.addEventListener('click', ()=> els.fileInput.click());
-      els.fileInput.addEventListener('change', onFileChange);
+      // Dropzone: Klick, Drag&Drop, Paste
+      els.dropzone.addEventListener('click', ()=> els.fileInput.click());
+      els.fileInput.addEventListener('change', onFiles);
+      ;['dragenter','dragover'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.add('dragover'); }));
+      ;['dragleave','drop'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.remove('dragover'); }));
+      els.dropzone.addEventListener('drop', e=>{
+        const files = [...(e.dataTransfer?.files||[])];
+        if (files.length) handleFile(files[0]);
+      });
+      window.addEventListener('paste', e=>{
+        const items = [...(e.clipboardData?.items||[])];
+        const file = items.map(i=> i.getAsFile && i.getAsFile()).find(Boolean);
+        if (file) { handleFile(file); toast('Bild aus Zwischenablage eingefügt', true); }
+      });
 
-      // Toggle direkt AUF dem Canvas + auf dem Overlay-Button
+      // Pixel-Toggle: Button auf Canvas + Switch darunter
       els.previewCanvas.addEventListener('click', togglePixelPreview);
       els.overlayToggle.addEventListener('click', (e)=>{ e.stopPropagation(); togglePixelPreview(); });
+      els.pixelSwitch.addEventListener('change', ()=>{
+        pixelViewOn = !!els.pixelSwitch.checked;
+        els.overlayToggle.textContent = pixelViewOn ? 'Pixel: AN' : 'Pixel: AUS';
+        drawPreview();
+      });
+
+      els.btnReplace.addEventListener('click', ()=> els.fileInput.click());
+      els.btnClear.addEventListener('click', resetUI);
 
       window.addEventListener('resize', ()=> { if (loadedImg) drawPreview(); });
 
@@ -238,23 +295,30 @@
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
+      els.btnCopy.addEventListener('click', copyResultText);
     })();
 
     function saveLocal(k, v){ try { localStorage.setItem(k, v); } catch {} }
 
+    // ===== Helpers UI =====
     function toast(msg, ok=false){
       const el = document.createElement('div');
       el.className = `alert ${ok?'alert-success':'alert-error'} shadow`;
       el.innerHTML = `<span>${escapeHTML(msg)}</span>`;
       els.toasts.appendChild(el);
-      setTimeout(()=> el.remove(), 2800);
+      setTimeout(()=> el.remove(), 2600);
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
-    async function onFileChange(e){
+    async function onFiles(e){
       const f = e.target.files && e.target.files[0];
       if (!f) return;
-      imageDataUrl = await fileToDataURL(f).catch(()=> null);
+      handleFile(f);
+      e.target.value = '';
+    }
+
+    async function handleFile(file){
+      imageDataUrl = await fileToDataURL(file).catch(()=> null);
       if (!imageDataUrl){ toast('Konnte das Bild nicht laden.'); return; }
 
       loadedImg = new Image();
@@ -263,14 +327,19 @@
       await loadedImg.decode();
 
       pixelViewOn = true;
+      els.pixelSwitch.checked = true;
       els.overlayToggle.textContent = 'Pixel: AN';
 
       els.previewWrap.classList.remove('hidden');
-      els.obsBox.classList.remove('hidden');
-      els.results.classList.add('hidden');
+      setStep(2);
       drawPreview();
+    }
 
-      e.target.value = ''; // Reset für erneute Auswahl
+    function setStep(n){
+      const clsOn = 'step-primary';
+      [els.step1,els.step2,els.step3].forEach((el,i)=>{
+        el.classList.toggle(clsOn, i < n);
+      });
     }
 
     function fileToDataURL(file){
@@ -283,20 +352,20 @@
     }
 
     function togglePixelPreview(){
-      if (!imageDataUrl || !loadedImg) return;
+      if (!loadedImg) return;
       pixelViewOn = !pixelViewOn;
+      els.pixelSwitch.checked = pixelViewOn;
       els.overlayToggle.textContent = pixelViewOn ? 'Pixel: AN' : 'Pixel: AUS';
       drawPreview();
     }
 
-    // Ein Canvas, zwei Modi: pixelig vs. klar – immer nur Anzeige, Analyse bleibt unverändert.
     function drawPreview(){
       const canvas = els.previewCanvas;
       const ctx = canvas.getContext('2d');
       const img = loadedImg;
       if (!img) return;
 
-      const targetW = 220; // feste Vorschaubreite
+      const targetW = 220; // kleine feste Breite
       const ratio = img.naturalHeight / img.naturalWidth;
       const targetH = Math.max(1, Math.round(targetW * ratio));
 
@@ -305,14 +374,12 @@
       ctx.clearRect(0,0,targetW,targetH);
 
       if (!pixelViewOn){
-        // KLAR: normales Skalieren mit Glättung
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(img, 0, 0, targetW, targetH);
         return;
       }
-
-      // PIXELIG: stärker verpixeln
-      const pixelSize = 18; // größere Blöcke → grober
+      // Stark verpixeln
+      const pixelSize = 18;
       const smallW = Math.max(10, Math.round(targetW / pixelSize));
       const smallH = Math.max(10, Math.round(targetH / pixelSize));
 
@@ -344,15 +411,16 @@
       els.bars.innerHTML = '';
       els.summary.textContent = '';
       els.recs.classList.add('hidden'); els.recsWrap.innerHTML = '';
+      setStep(1);
     }
 
-    // -------- Analyse --------
+    // ===== Analyse =====
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
       if (!key){ toast('Bitte API-Key eingeben.'); return; }
-      if (!imageDataUrl){ toast('Bitte zuerst ein Bild auswählen.'); return; }
+      if (!imageDataUrl){ toast('Bitte zuerst ein Foto hinzufügen.'); return; }
 
-      setLoading(true, 'Bild wird geprüft…');
+      setLoading(true, 'Foto wird geprüft…');
       try {
         // 1) Vorprüfung
         const pre = await callResponses_Precheck(key, imageDataUrl);
@@ -366,8 +434,9 @@
         const rtxt = extractJSONText(res);
         const vision = safeParseJSON(rtxt);
         if (!vision) throw new Error('Analyse gab kein gültiges JSON zurück.');
-        await renderFinal(vision);
 
+        await renderFinal(vision);
+        setStep(3);
         setLoading(false);
       } catch(e){
         setLoading(false);
@@ -395,7 +464,7 @@
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 60);
     }
 
-    // -------- Anzeige --------
+    // ===== Ergebnis UI =====
     function renderBars(p){
       els.bars.innerHTML = '';
       const rows = [
@@ -432,7 +501,6 @@
       }
     }
 
-    // -------- Empfehlungen (Top + weitere) --------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
@@ -442,23 +510,21 @@
         { ...PRODUCTS.protein, score: Number(p.protein||0) },
         { ...PRODUCTS.fat,     score: Number(p.fat||0) }
       ];
-
+      // Top-Empfehlung wählen
       let top = items[0];
-      for (let i=1; i<items.length; i++){
-        if (items[i].score > top.score) top = items[i];
-      }
+      for (let i=1; i<items.length; i++) if (items[i].score > top.score) top = items[i];
       const others = items.filter(x => x.key !== top.key);
 
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
 
-      // Top-Empfehlung
+      // Top-Empfehlung (klar hervorgehoben)
       els.recsWrap.insertAdjacentHTML('beforeend', `
-        <div class="card border-2 border-primary bg-primary/5 shadow">
+        <div class="card border-2 border-primary bg-primary/5">
           <div class="card-body">
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <span class="badge badge-primary">Top-Empfehlung</span>
-              <span class="text-sm text-base-content/70">Score: ${Math.round(top.score)}%</span>
+              <span class="text-sm text-base-content/70">Treffer: ${Math.round(top.score)}%</span>
             </div>
             <h4 class="card-title mt-1">${escapeHTML(top.title)}</h4>
             <p class="text-sm">${escapeHTML(top.note||'')}</p>
@@ -470,7 +536,7 @@
         </div>
       `);
 
-      // Übrige
+      // Weitere (kleiner, aber klar)
       others.forEach(it=>{
         const good = it.score >= 40;
         const badgeCls = good ? 'badge-success' : 'badge-ghost';
@@ -483,7 +549,7 @@
                   <span class="badge ${badgeCls}">${badgeTxt}</span>
                   <span class="badge">${escapeHTML(it.subtitle||'')}</span>
                 </div>
-                <span class="text-sm text-base-content/60">Score: ${Math.round(it.score)}%</span>
+                <span class="text-sm text-base-content/60">Treffer: ${Math.round(it.score)}%</span>
               </div>
               <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
               <p class="text-sm">${escapeHTML(it.note||'')}</p>
@@ -497,7 +563,30 @@
       });
     }
 
-    // -------- Teilen/Download (verpixeltes Share-PNG) --------
+    function composePlainSummary(vo){
+      const f = vo?.feature_flags || {};
+      const b = Number(vo?.bristol || 0);
+      const red = !!vo?.red_flags?.present;
+      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
+
+      const normal = (b>=3 && b<=5) && f.formed_loglike &&
+        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
+        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
+        !f.red_blood && !f.black_tarry;
+
+      if (normal) return 'Wirkt normal: braun und geformt.';
+      if (b === 7) return 'Wässrig – passt zu Durchfall. Genug trinken.';
+      if (b === 6) return 'Weich/breiig – oft vorübergehend.';
+      if (b <= 2)  return 'Hart/trocken – mehr trinken und bewegen.';
+      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color) return 'Eher fettig/ölig.';
+      if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber) return 'Eher wässrig/bruchstückig.';
+      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar.';
+      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos.';
+      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos.';
+      return 'Unauffällig, aber nicht eindeutig.';
+    }
+
+    // ===== Teilen/Download/Text kopieren =====
     async function onShare(){
       try{
         const p = readPercents();
@@ -505,13 +594,13 @@
         const file = new File([blob], 'analyse.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files:[file] })){
           await navigator.share({
-            title: 'Stuhlbild-Analyse',
+            title: 'Stuhlbild-Auswertung',
             text: `KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
             files: [file]
           });
         } else {
           downloadBlob(blob, 'analyse.png');
-          toast('Web Share nicht verfügbar – Bild wurde heruntergeladen.', true);
+          toast('Web Share nicht verfügbar – PNG heruntergeladen.', true);
         }
       } catch(e){ toast('Teilen fehlgeschlagen: ' + limitErr(e)); }
     }
@@ -521,8 +610,18 @@
         const p = readPercents();
         const blob = await createShareImage(p);
         downloadBlob(blob, 'analyse.png');
-        toast('Bild heruntergeladen.', true);
+        toast('PNG gespeichert.', true);
       } catch(e){ toast('Download fehlgeschlagen: ' + limitErr(e)); }
+    }
+
+    function copyResultText(){
+      const p = readPercents();
+      const txt = [
+        'Stuhlbild-Auswertung',
+        els.summary.textContent.trim(),
+        `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`
+      ].join('\n');
+      navigator.clipboard.writeText(txt).then(()=> toast('Text kopiert.', true)).catch(()=> toast('Kopieren fehlgeschlagen.'));
     }
 
     function readPercents(){
@@ -539,8 +638,8 @@
       img.src = imageDataUrl;
       await img.decode();
 
-      // Verpixeln (stark), quadratisch 128×128
-      const S = 12; // sehr grobe Quelle
+      // Stark verpixelte Quadratkachel 128×128
+      const S = 12;
       const side = 128;
 
       const small = document.createElement('canvas');
@@ -566,7 +665,7 @@
       o.fillStyle = '#F3F4F6'; o.fillRect(0,0,out.width,out.height);
       o.fillStyle = '#111827'; o.fillRect(0,0,out.width,HEADER);
       o.fillStyle = '#F9FAFB'; o.font = 'bold 11px Inter, system-ui, sans-serif';
-      o.fillText('Stuhlbild-Analyse', 6, 15);
+      o.fillText('Stuhlbild-Auswertung', 6, 15);
 
       o.imageSmoothingEnabled = false;
       o.drawImage(pix, 0, HEADER);
@@ -607,30 +706,7 @@
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
-    // -------- Text & Scoring --------
-    function composePlainSummary(vo){
-      const f = vo?.feature_flags || {};
-      const b = Number(vo?.bristol || 0);
-      const red = !!vo?.red_flags?.present;
-      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
-
-      const normal = (b>=3 && b<=5) && f.formed_loglike &&
-        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
-        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
-        !f.red_blood && !f.black_tarry;
-
-      if (normal) return 'Wirkt normal: braun und geformt.';
-      if (b === 7) return 'Wässrig – passt zu Durchfall. Genug trinken.';
-      if (b === 6) return 'Weich/breiig – oft vorübergehend.';
-      if (b <= 2)  return 'Hart/trocken – mehr trinken und bewegen.';
-      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color) return 'Eher fettig/ölig.';
-      if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber) return 'Eher wässrig/bruchstückig.';
-      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar.';
-      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos.';
-      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos.';
-      return 'Unauffällig, aber nicht eindeutig.';
-    }
-
+    // ===== Scoring =====
     function computeScoresFromFeatures(vo, obs){
       const f = vo?.feature_flags || {};
       const b = Number(vo?.bristol || 0);
@@ -679,7 +755,7 @@
     }
     function clamp01(x){ return x<0?0:x>1?1:x; }
 
-    // -------- API-Hilfen --------
+    // ===== API Hilfen =====
     function extractJSONText(resp){
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
       const texts = [];
@@ -708,7 +784,7 @@
       return s.length>300 ? s.slice(0,300)+'…' : s;
     }
 
-    // ---- OpenAI Responses API (gpt-5) ----
+    // ===== OpenAI Responses API (gpt-5) =====
     async function callResponses_Precheck(apiKey, imageDataUrl){
       const schema = {
         type:"object", additionalProperties:false,
