@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhl ANALyze – Vision (mobil · Galerie ODER Kamera · Sharing)</title>
+  <title>Stuhl ANALyze – Vision (einfach · mobil · sharing)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -19,7 +19,6 @@
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     .thumb { aspect-ratio: 1 / 1; object-fit: cover; }
     .pixel { image-rendering: pixelated; }
-    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -29,7 +28,7 @@
   <div class="container mx-auto max-w-3xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
       <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhl <span class="tracking-tight">ANALyze</span></h1>
-      <p class="text-base-content/70 mt-2">Vision-Auswertung (Deutsch) + optionale Beobachtungen. <strong>Keine Diagnose.</strong></p>
+      <p class="text-base-content/70 mt-2">Vision-Auswertung in einfachem Deutsch. <strong>Keine Diagnose.</strong></p>
     </header>
 
     <!-- Einstellungen -->
@@ -42,17 +41,17 @@
               <input id="apiKey" type="password" placeholder="sk-..." class="input input-bordered join-item w-full" autocomplete="off" />
               <button id="toggleKey" class="btn join-item" type="button" aria-label="API-Key anzeigen/ausblenden">👁️</button>
             </div>
-            <div class="label"><span class="label-text-alt">Lokal gespeichert (localStorage).</span></div>
+            <div class="label"><span class="label-text-alt">Lokal gespeichert (nur auf diesem Gerät).</span></div>
           </label>
 
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">Modell</span></div>
             <select id="model" class="select select-bordered w-full">
-              <option value="gpt-5" selected>gpt-5 (Vision & Structured Outputs)</option>
+              <option value="gpt-5" selected>gpt-5 (Vision & Structured)</option>
               <option value="gpt-5-mini">gpt-5-mini</option>
               <option value="gpt-4o">gpt-4o</option>
             </select>
-            <div class="label"><span class="label-text-alt">Wechsel möglich, falls ein Modell nicht verfügbar ist.</span></div>
+            <div class="label"><span class="label-text-alt">Falls ein Modell ausfällt, anderes wählen.</span></div>
           </label>
         </div>
 
@@ -65,7 +64,7 @@
           <div class="form-control">
             <div class="label"><span class="label-text font-semibold">Sprache</span></div>
             <input class="input input-bordered" value="Deutsch (erzwungen)" disabled />
-            <div class="label"><span class="label-text-alt">Alle KI-Antworten sind auf Deutsch.</span></div>
+            <div class="label"><span class="label-text-alt">Ausgaben sind immer einfaches Deutsch.</span></div>
           </div>
         </div>
 
@@ -82,7 +81,7 @@
       </svg>
       <div>
         <div class="font-bold">Sicherheits-Hinweis</div>
-        <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72h oder Gewichtsverlust bitte ärztlich abklären.</div>
+        <div>Kein medizinisches Gerät. Bei Blut, pechschwarz/Teerstuhl, starken Schmerzen, Fieber, anhaltender Diarrhö &gt;72 h oder Gewichtsverlust bitte ärztlich abklären.</div>
       </div>
     </section>
 
@@ -92,17 +91,17 @@
         <section>
           <h2 class="card-title justify-center">Schritt 1: Bild wählen</h2>
 
-          <!-- Buttons: GALERIE (öffnet Dateiauswahl) + KAMERA (erzwingt Kamera) -->
-          <div class="flex flex-col xs:flex-row sm:flex-row items-stretch sm:items-center gap-3 mt-3">
+          <!-- Quelle: Galerie oder Kamera -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-3">
             <button id="btnGallery" class="btn btn-outline w-full sm:w-auto">📷 Aus Galerie wählen</button>
-            <button id="btnCamera" class="btn btn-ghost w-full sm:w-auto">🎥 Kamera öffnen</button>
-            <button id="btnClear" class="btn btn-ghost w-full sm:w-auto">🧹 Auswahl zurücksetzen</button>
+            <button id="btnCamera"  class="btn btn-ghost w-full sm:w-auto">🎥 Kamera öffnen</button>
+            <button id="btnClear"   class="btn btn-ghost w-full sm:w-auto">🧹 Auswahl löschen</button>
           </div>
           <p class="text-xs sm:text-sm text-base-content/60 mt-2 text-center">
-            Tipp: Auf mobilen Browsern öffnet <em>Galerie</em> deinen Medienspeicher. <em>Kamera</em> nutzt direkt die Kamera.
+            Tipp: <em>Galerie</em> öffnet deinen Medienspeicher. <em>Kamera</em> nutzt die Kamera direkt.
           </p>
 
-          <!-- Versteckte Inputs: getrennt, damit iOS/Android sicher die richtige Quelle öffnen -->
+          <!-- Getrennte Inputs: zuverlässiger auf iOS/Android -->
           <input id="inputGallery" type="file" accept="image/*" multiple class="hidden" aria-hidden="true" />
           <input id="inputCamera"  type="file" accept="image/*" capture="environment" class="hidden" aria-hidden="true" />
 
@@ -122,7 +121,7 @@
             </label>
             <label class="label cursor-pointer justify-start gap-3">
               <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Faulig/Ammoniak? (Protein)</span>
+              <span class="label-text">Sehr strenger Geruch? (Protein)</span>
             </label>
             <label class="label cursor-pointer justify-start gap-3">
               <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
@@ -145,7 +144,7 @@
           <h2 class="card-title justify-center">Ergebnis</h2>
 
           <div class="mb-2 text-sm text-center">
-            <span class="badge badge-success">🧠 Vision-Analyse (Deutsch)</span>
+            <span class="badge badge-success">🧠 Vision (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
 
@@ -155,12 +154,12 @@
           <!-- Werte (klar & mobilfreundlich) -->
           <div id="bars" class="mt-4 space-y-3"></div>
 
-          <!-- Zusammenfassung -->
+          <!-- Einfache Kurz-Zusammenfassung -->
           <p id="summary" class="mt-6 text-center bg-base-200 p-4 rounded-lg"></p>
 
           <!-- Hinweise -->
           <div id="recs" class="mt-6 hidden">
-            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (nicht-medizinisch)</h3>
+            <h3 class="font-semibold mb-3 text-center">Enzym-Hinweise (nicht medizinisch)</h3>
             <div id="recsWrap" class="space-y-3"></div>
           </div>
 
@@ -196,12 +195,12 @@
       amazonTag: document.getElementById('amazonTag'),
       saveSettings: document.getElementById('saveSettings'),
 
-      // NEU: getrennte Inputs für Galerie & Kamera
+      // Galerie/Kamera
       btnGallery: document.getElementById('btnGallery'),
       btnCamera:  document.getElementById('btnCamera'),
       btnClear:   document.getElementById('btnClear'),
-      inputGallery: document.getElementById('inputGallery'), // accept="image/*", multiple
-      inputCamera:  document.getElementById('inputCamera'),  // capture="environment"
+      inputGallery: document.getElementById('inputGallery'),
+      inputCamera:  document.getElementById('inputCamera'),
 
       gallery: document.getElementById('gallery'),
       previewWrap: document.getElementById('previewWrap'),
@@ -242,7 +241,6 @@
         els.model.value     = localStorage.getItem('openai_model') || 'gpt-5';
       } catch {}
 
-      // Settings
       els.saveSettings.addEventListener('click', saveSettings);
       els.toggleKey.addEventListener('click', ()=> {
         els.apiKey.type = els.apiKey.type === 'password' ? 'text' : 'password';
@@ -252,44 +250,20 @@
       els.amazonTag.addEventListener('input', debounce(saveSettings, 300));
       els.model.addEventListener('change', saveSettings);
 
-      // NEU: Quelle wählen – Galerie oder Kamera
+      // Mobil-freundliche Quelle
       els.btnGallery.addEventListener('click', () => openPicker(els.inputGallery));
       els.btnCamera.addEventListener('click',  () => openPicker(els.inputCamera));
       els.btnClear.addEventListener('click', clearSelection);
 
-      // Dateiänderungen separat behandeln
       els.inputGallery.addEventListener('change', onFilesFromInput);
       els.inputCamera.addEventListener('change', onFilesFromInput);
 
-      // Analyse & UI
       els.analyze.addEventListener('click', onAnalyze);
       els.reset.addEventListener('click', resetResults);
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
     })();
-
-    // --- Picker robust öffnen (showPicker() → click() Fallback) ---
-    function openPicker(inputEl) {
-      try {
-        if (typeof inputEl.showPicker === 'function') {
-          inputEl.showPicker(); // Android/neuere Browser
-        } else {
-          inputEl.click();      // iOS/Safari Fallback
-        }
-      } catch {
-        inputEl.click();
-      }
-    }
-
-    function clearSelection(){
-      images = [];
-      activeIndex = -1;
-      els.gallery.innerHTML = '';
-      els.previewWrap.classList.add('hidden');
-      resetResults();
-      toast('Auswahl zurückgesetzt', true);
-    }
 
     function saveSettings() {
       try {
@@ -311,11 +285,26 @@
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
-    // ---------- Dateien ----------
+    // ---------- Datei-Quelle ----------
+    function openPicker(inputEl) {
+      try {
+        if (typeof inputEl.showPicker === 'function') inputEl.showPicker();
+        else inputEl.click();
+      } catch { inputEl.click(); }
+    }
+
+    function clearSelection(){
+      images = [];
+      activeIndex = -1;
+      els.gallery.innerHTML = '';
+      els.previewWrap.classList.add('hidden');
+      resetResults();
+      toast('Auswahl gelöscht', true);
+    }
+
     async function onFilesFromInput(e){
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
-      // Falls neue Datei(en) gewählt → ersetzen (mobil-freundlich & simpel)
       images = [];
       for (const f of files) {
         const dataUrl = await fileToDataURL(f).catch(()=> null);
@@ -324,9 +313,7 @@
       activeIndex = images.length ? 0 : -1;
       renderGallery();
       resetResults();
-      if (activeIndex >= 0) showQuestions(true);
-
-      // Eingabe zurücksetzen, damit gleiche Datei erneut wählbar ist
+      if (activeIndex >= 0) els.questions.classList.remove('hidden');
       e.target.value = '';
     }
 
@@ -362,10 +349,6 @@
       renderGallery();
     }
 
-    function showQuestions(show) {
-      els.questions.classList.toggle('hidden', !show);
-    }
-
     function setLoading(on, msg='Analyse läuft…') {
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
@@ -380,7 +363,7 @@
       if (activeIndex < 0) { toast('Bitte zuerst ein Bild wählen.'); return; }
       const imageDataUrl = images[activeIndex].dataUrl;
 
-      setLoading(true, 'Validierung des Bildes…');
+      setLoading(true, 'Bild wird geprüft…');
       lastPrecheck = null;
       try {
         const pre = await callResponses_Precheck(key, model, imageDataUrl);
@@ -398,13 +381,13 @@
           const res2 = await callResponses_Extract(key, model, imageDataUrl);
           const txt2 = extractJSONText(res2);
           const vo2 = safeParseJSON(txt2);
-          if (!vo2) throw new Error('Zweitprüfung: Modell lieferte kein valides JSON.');
+          if (!vo2) throw new Error('Zweitprüfung: kein valides JSON.');
           if (stoolLikeFromExtract(vo2)) {
             await renderFinal(vo2, { uncertain: true });
             setLoading(false); return;
           } else {
             setLoading(false);
-            toast('Bild wurde als „kein Stuhl“ eingestuft. Bitte besseres Foto: mehr Licht, weniger Wasser/Spiegelung, näher ran.');
+            toast('Bild als „kein Stuhl“ erkannt. Bitte besseres Foto: mehr Licht, weniger Spiegelung, näher ran.');
             return;
           }
         }
@@ -428,23 +411,61 @@
         smelly: !!els.obsSmelly.checked,
         watery: !!els.obsWatery.checked
       };
-      const { percents, rationale, normalNote } = computeScoresFromFeatures(visionObj, observations);
+      const { percents } = computeScoresFromFeatures(visionObj, observations);
 
+      // Qualität
       const q = (visionObj.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
       els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.uncertain ? ' · unsicher' : '');
       els.qualityBadge.classList.remove('hidden');
       els.qualityBadge.className = 'badge ' + (opts.uncertain ? 'badge-warning' : (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error'));
 
+      // Werte & Warnzeichen
       renderBars(percents);
       renderRedFlags(visionObj.red_flags);
-      const sum = (visionObj.summary || '').trim();
-      els.summary.textContent = [sum, normalNote, rationale].filter(Boolean).join(' ');
 
+      // *** Einfache Kurz-Zusammenfassung ***
+      els.summary.textContent = composePlainSummary(visionObj, percents);
+
+      // Hinweise
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
-      setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+      setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+    }
+
+    // *** Einfache Text-Engine: 1–2 kurze Sätze in Alltagssprache ***
+    function composePlainSummary(vo, perc){
+      const f = vo?.feature_flags || {};
+      const b = Number(vo?.bristol || 0);
+      const red = !!vo?.red_flags?.present;
+
+      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
+
+      const looksNormal =
+        (b >= 3 && b <= 5) &&
+        f.formed_loglike &&
+        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
+        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
+        !f.red_blood && !f.black_tarry;
+
+      if (looksNormal) return 'Sieht normal aus: braun und geformt. Kein klarer Hinweis auf Probleme.';
+
+      if (b === 7) return 'Wässrig. Das passt zu Durchfall. Trinken nicht vergessen. Wenn es länger anhält: abklären.';
+      if (b === 6) return 'Weich/breiig. Oft vorübergehend nach bestimmtem Essen. Beobachten.';
+      if (b <= 2)  return 'Hart/trocken. Das passt zu Verstopfung. Auf Flüssigkeit und Bewegung achten.';
+
+      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color)
+        return 'Eher fettig/ölig. Das kann auf Fettverdauung hinweisen. Beobachten.';
+
+      if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber)
+        return 'Eher wässrig/bruchstückig. Kommt oft nach viel Kohlenhydraten/Obst vor.';
+
+      if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar. Meist unkritisch. Beobachten.';
+      if (vo?.detected_colors?.includes('green')) return 'Farbe eher grünlich. Häufig harmlos und vorübergehend.';
+      if (vo?.detected_colors?.includes('yellow')) return 'Farbe eher gelblich. Häufig harmlos und vorübergehend.';
+
+      return 'Unauffällig, aber nicht eindeutig. Einfach beobachten.';
     }
 
     function stoolLikeFromExtract(vo){
@@ -468,175 +489,9 @@
       els.summary.textContent = '';
       els.recs.classList.add('hidden');
       els.recsWrap.innerHTML = '';
-      els.obsSticky.checked = false;
-      els.obsSmelly.checked = false;
-      els.obsWatery.checked = false;
-      lastPrecheck = null;
     }
 
-    // ---------- OpenAI Responses API ----------
-    // input_image erwartet STRING bei image_url (z. B. Data-URL), kein Objekt.
-    // Structured Outputs via text.format { type:"json_schema", strict:true }
-    // Keine temperature/max_tokens gesetzt.
-
-    function extractJSONText(resp) {
-      if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
-      const texts = [];
-      (function walk(x){
-        if (!x) return;
-        if (typeof x === 'string') texts.push(x);
-        else if (Array.isArray(x)) x.forEach(walk);
-        else if (typeof x === 'object') {
-          if (typeof x.text === 'string') texts.push(x.text);
-          for (const k in x) if (k !== 'text') walk(x[k]);
-        }
-      })(resp?.output);
-      return texts.join('\n').trim();
-    }
-
-    function safeParseJSON(text) {
-      if (!text) return null;
-      let cleaned = text.trim();
-      cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-      const start = cleaned.indexOf('{');
-      const end = cleaned.lastIndexOf('}');
-      if (start === -1 || end === -1 || end < start) return null;
-      cleaned = cleaned.substring(start, end + 1);
-      try { return JSON.parse(cleaned); } catch { return null; }
-    }
-
-    function limitErr(e) {
-      const s = (e && (e.message || String(e))) || 'Unbekannter Fehler';
-      return s.length > 300 ? s.slice(0,300) + '…' : s;
-    }
-
-    async function callResponses_Precheck(apiKey, model, imageDataUrl){
-      const schema = {
-        type: "object",
-        additionalProperties: false,
-        required: ["is_stool","confidence","notes"],
-        properties: {
-          is_stool: { type:"string", enum:["yes","no","uncertain"] },
-          confidence: { type:"number", minimum:0, maximum:1 },
-          notes: { type:"string" }
-        }
-      };
-
-      const systemInstruction =
-        "Du bist ein strenger, aber fairer Bild-Prüfer. " +
-        "Aufgabe: Entscheide, ob das Bild WAHRSCHEINLICH (≥60 %) menschlichen Stuhl oder Stuhlreste zeigt. " +
-        "Dazu zählen auch wässrige Formen (Bristol 6–7), schwimmende Fragmente, gelbliche/grünliche Masse, teilweise verdeckt. " +
-        "Antworte ausschließlich auf Deutsch. Gib STRICT JSON nach Schema zurück.";
-
-      const body = {
-        model,
-        input: [
-          { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
-          { role: "user", content: [
-            { type: "input_image", image_url: imageDataUrl, detail: "high" },
-            { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
-          ]}
-        ],
-        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v3", strict:true, schema } }
-      };
-
-      const API_URL = "https://api.openai.com/v1/responses";
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok){
-        const t = await res.text().catch(()=> '');
-        throw new Error(t || ('HTTP ' + res.status));
-      }
-      return await res.json();
-    }
-
-    async function callResponses_Extract(apiKey, model, imageDataUrl){
-      const schema = {
-        type: "object",
-        additionalProperties: false,
-        required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
-        properties: {
-          summary: { type: "string" },  // deutsch
-          vision_quality: { type: "string", enum:["good","fair","poor"] },
-          bristol: { type: "integer", minimum:1, maximum:7 },
-          feature_flags: {
-            type: "object",
-            additionalProperties: false,
-            required: [
-              "oily_sheen","sticks_to_bowl","floats","watery_liquid","foamy_bubbles",
-              "undigested_fiber","pale_clay_color","green_color","black_tarry","red_blood",
-              "mucus_excess","visible_fat_globules","many_small_fragments","formed_loglike"
-            ],
-            properties: {
-              oily_sheen:{type:"boolean"},
-              sticks_to_bowl:{type:"boolean"},
-              floats:{type:"boolean"},
-              watery_liquid:{type:"boolean"},
-              foamy_bubbles:{type:"boolean"},
-              undigested_fiber:{type:"boolean"},
-              pale_clay_color:{type:"boolean"},
-              green_color:{type:"boolean"},
-              black_tarry:{type:"boolean"},
-              red_blood:{type:"boolean"},
-              mucus_excess:{type:"boolean"},
-              visible_fat_globules:{type:"boolean"},
-              many_small_fragments:{type:"boolean"},
-              formed_loglike:{type:"boolean"}
-            }
-          },
-          detected_colors: {
-            type: "array",
-            items: { type:"string", enum:["brown","light_brown","dark_brown","yellow","green","black","red","tan","clay","other"] }
-          },
-          red_flags: {
-            type: "object",
-            additionalProperties: false,
-            required: ["present","notes"],
-            properties: { present:{type:"boolean"}, notes:{type:"string"} } // deutsch
-          }
-        }
-      };
-
-      const instructions = [
-        "Du bist ein sorgfältiger Vision-Assistent.",
-        "Erkenne NUR visuell Vorhandenes; keine Gerüche/Symptome erfinden.",
-        "Fülle alle feature_flags als boolesche Werte aus dem Bild.",
-        "Bestimme die Bristol-Skala (1..7).",
-        "Weich/breiig (6) bzw. wässrig (7) muss sich in bristol + Flags widerspiegeln.",
-        "Setze vision_quality = good/fair/poor nach Licht/Schärfe/Verdeckung.",
-        "Markiere red_flags, wenn deutlich rotes Blut oder teerartig schwarz.",
-        "Antworte ausschließlich auf Deutsch in allen Freitextfeldern."
-      ].join(" ");
-
-      const body = {
-        model,
-        input: [
-          { role:"system", content:[{ type:"input_text", text: instructions }]},
-          { role:"user", content:[
-            { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema für dieses Bild aus."},
-            { type:"input_image", image_url: imageDataUrl, detail: "high" }
-          ]}
-        ],
-        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v3", strict:true, schema } }
-      };
-
-      const API_URL = "https://api.openai.com/v1/responses";
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type":"application/json", "Authorization":"Bearer " + apiKey },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok){
-        const t = await res.text().catch(()=> '');
-        throw new Error(t || ('HTTP ' + res.status));
-      }
-      return await res.json();
-    }
-
-    // ---------- Scoring ----------
+    // ---------- Werte-Berechnung ----------
     function computeScoresFromFeatures(visionObj, obs){
       const f = visionObj.feature_flags || {};
       const b = Number(visionObj.bristol || 0);
@@ -644,7 +499,7 @@
 
       let fat = 0, carb = 0, protein = 0;
 
-      // FETT
+      // Fett
       fat += f.oily_sheen           ? 3.0 : 0;
       fat += f.visible_fat_globules ? 2.8 : 0;
       fat += f.sticks_to_bowl       ? 2.4 : 0;
@@ -660,7 +515,7 @@
       carb += f.mucus_excess         ? 0.8 : 0;
       carb += f.green_color          ? 0.7 : 0;
 
-      // PROTEIN
+      // Protein
       protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
 
       // Bristol
@@ -669,61 +524,23 @@
       if (!f.formed_loglike && b >= 5) carb += 0.8;
       if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
 
-      // Nutzerhinweise
-      if (obs.sticky) fat     += 0.5;
-      if (obs.watery) carb    += 0.5;
-      if (obs.smelly) protein += 1.5;
-
-      const normalPattern = (
-        (b >= 3 && b <= 5) &&
-        f.formed_loglike &&
-        !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
-        !f.visible_fat_globules && !f.mucus_excess && !f.foamy_bubbles &&
-        !f.red_blood && !f.black_tarry
-      );
+      // Nutzer-Beobachtungen (klein)
+      if (obs?.sticky) fat     += 0.5;
+      if (obs?.watery) carb    += 0.5;
+      if (obs?.smelly) protein += 1.5;
 
       const fatPct     = clamp01(fat / 12.5) * 100;
       const carbPct    = clamp01(carb / 12.5) * 100;
       const proteinPct = clamp01(protein / 5.0) * 100;
 
-      const percents = {
-        fat: Math.round(fatPct),
-        protein: Math.round(proteinPct),
-        carb: Math.round(carbPct)
+      return {
+        percents: {
+          fat: Math.round(fatPct),
+          protein: Math.round(proteinPct),
+          carb: Math.round(carbPct)
+        }
       };
-
-      const why = [];
-      if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.pale_clay_color || f.floats) {
-        const bits = [
-          f.oily_sheen?'öliger Glanz':null,
-          f.visible_fat_globules?'Fetttröpfchen':null,
-          f.sticks_to_bowl?'klebrig':null,
-          f.pale_clay_color?'sehr hell/lehmig':null,
-          f.floats?'schwimmt':null
-        ].filter(Boolean).join(', ');
-        if (bits) why.push('Fett-Marker: ' + bits);
-      }
-      if (f.watery_liquid || f.foamy_bubbles || f.undigested_fiber || f.many_small_fragments || f.mucus_excess || f.green_color || b>=6) {
-        const bits = [
-          f.watery_liquid?'wässrig':null,
-          f.foamy_bubbles?'schaumig/Bläschen':null,
-          f.undigested_fiber?'unverd. Pflanzenfasern':null,
-          f.many_small_fragments?'viele Fragmente':null,
-          f.mucus_excess?'mehr Schleim':null,
-          f.green_color?'grünlich':null,
-          (b===6)?'Bristol 6 (weich/breiig)':null,
-          (b===7)?'Bristol 7 (wässrig)':null
-        ].filter(Boolean).join(', ');
-        if (bits) why.push('KH-Marker: ' + bits);
-      }
-      if (obs.smelly) why.push('Nutzerhinweis: starker Geruch → kleiner Protein-Zuschlag.');
-      const rationale = why.length ? ('Begründung: ' + why.join(' | ')) : (normalPattern ? 'Begründung: unauffälliges, geformtes, braunes Bild – keine eindeutigen Maldigestions-Marker.' : 'Begründung: sichtbare Marker waren schwach.');
-
-      const normalNote = normalPattern ? 'Bild wirkt unauffällig (Bristol 3–5, geformt, braun). Wahrscheinlichkeiten daher niedrig.' : '';
-
-      return { percents, rationale, normalNote };
     }
-
     function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
 
     // ---------- Anzeige ----------
@@ -763,11 +580,12 @@
       }
     }
 
+    // ---------- Empfehlungen (optional) ----------
     function renderRecs(p){
       const recs = [];
       if (p.fat >= 40) recs.push({ enzyme:'Pankreatin/Lipase', notes:'Bei fettigem, schmierigem Stuhl – auf Lipase-Einheiten achten.', amazon_keywords:'Pankreatin magensaftresistent 20000 Lipase' });
       if (p.carb >= 40) recs.push({ enzyme:'Amylase/α-Glukosidase', notes:'Bei wässrig/breiig und Blähungen nach KH-reichen Mahlzeiten.', amazon_keywords:'Verdauungsenzyme Amylase Glucosidase' });
-      if (p.protein >= 40) recs.push({ enzyme:'Protease/Bromelain', notes:'Bei deutlichem Eiweiß-Hinweis (faulig/Ammoniak).', amazon_keywords:'Bromelain 2400 GDU Protease' });
+      if (p.protein >= 40) recs.push({ enzyme:'Protease/Bromelain', notes:'Bei deutlichem Eiweiß-Hinweis (sehr strenger Geruch).', amazon_keywords:'Bromelain 2400 GDU Protease' });
       if (!recs.length){ els.recs.classList.add('hidden'); els.recsWrap.innerHTML = ''; return; }
 
       const tag = (els.amazonTag.value || '').trim();
@@ -790,7 +608,7 @@
       });
     }
 
-    // ---------- Share-Bild (ein PNG: verpixelte Vorschau + kompakte Werte-Kapseln) ----------
+    // ---------- Teilen: kleines PNG (verpixelt + Werte) ----------
     async function createShareImage(percents){
       if (activeIndex < 0) throw new Error('Kein Bild gewählt.');
 
@@ -815,7 +633,7 @@
       pctx.imageSmoothingEnabled = false;
       pctx.drawImage(small, 0, 0, S, S, 0, 0, pix.width, pix.height);
 
-      // End-Canvas: Header + 128 + Werte-Block
+      // End-Canvas
       const HEADER = 22;
       const VALUES_H = 62;
       const GAP = 4;
@@ -839,7 +657,7 @@
       o.imageSmoothingEnabled = false;
       o.drawImage(pix, 0, HEADER, 128, 128);
 
-      // Werte-Block
+      // Werte-Kapseln
       o.imageSmoothingEnabled = true;
       const top = HEADER + 128 + GAP;
       drawValueRow(o, 'KH', percents.carb, 6, top + 6);
@@ -860,11 +678,10 @@
       ctx.font = '10px Inter, system-ui, sans-serif';
       const pct = isFinite(val) ? Math.round(val) : 0;
       ctx.fillText(`${label} ${pct}%`, x, y-2);
-      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // Hintergrund
+      roundedRect(ctx, x, y+3, w, h, r, '#E5E7EB'); // BG
       const filled = Math.max(0, Math.min(w, Math.round(w * (pct/100))));
-      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // Vordergrund
+      roundedRect(ctx, x, y+3, filled, h, r, '#60A5FA'); // FG
     }
-
     function roundedRect(ctx, x, y, w, h, r, color){
       ctx.beginPath();
       ctx.moveTo(x+r, y);
@@ -873,8 +690,7 @@
       ctx.arcTo(x, y+h, x, y, r);
       ctx.arcTo(x, y, x+w, y, r);
       ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
+      ctx.fillStyle = color; ctx.fill();
     }
 
     async function onShare(){
@@ -924,11 +740,7 @@
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
-    // ---------- Utils ----------
-    function showQuestions(show) { els.questions.classList.toggle('hidden', !show); }
-
-    // ---------- Vision / API Calls ----------
-
+    // ---------- OpenAI Responses API ----------
     function extractJSONText(resp) {
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
       const texts = [];
@@ -955,6 +767,11 @@
       try { return JSON.parse(cleaned); } catch { return null; }
     }
 
+    function limitErr(e) {
+      const s = (e && (e.message || String(e))) || 'Unbekannter Fehler';
+      return s.length > 300 ? s.slice(0,300) + '…' : s;
+    }
+
     async function callResponses_Precheck(apiKey, model, imageDataUrl){
       const schema = {
         type: "object",
@@ -968,10 +785,9 @@
       };
 
       const systemInstruction =
-        "Du bist ein strenger, aber fairer Bild-Prüfer. " +
-        "Aufgabe: Entscheide, ob das Bild WAHRSCHEINLICH (≥60 %) menschlichen Stuhl oder Stuhlreste zeigt. " +
-        "Dazu zählen auch wässrige Formen (Bristol 6–7), schwimmende Fragmente, gelbliche/grünliche Masse, teilweise verdeckt. " +
-        "Antworte ausschließlich auf Deutsch. Gib STRICT JSON nach Schema zurück.";
+        "Du prüfst, ob das Foto wahrscheinlich menschlichen Stuhl zeigt. " +
+        "Zähle wässrige Formen (weich/wässrig) und teilweise verdeckte Reste dazu. " +
+        "Antworte NUR mit JSON (Deutsch), Schema siehe Format.";
 
       const body = {
         model,
@@ -982,7 +798,7 @@
             { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolPrecheckDE_v3", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolPrecheckDE_simple", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -1004,7 +820,7 @@
         additionalProperties: false,
         required: ["summary","vision_quality","bristol","feature_flags","detected_colors","red_flags"],
         properties: {
-          summary: { type: "string" },  // deutsch
+          summary: { type: "string" },  // wir überschreiben textlich mit composePlainSummary
           vision_quality: { type: "string", enum:["good","fair","poor"] },
           bristol: { type: "integer", minimum:1, maximum:7 },
           feature_flags: {
@@ -1040,20 +856,15 @@
             type: "object",
             additionalProperties: false,
             required: ["present","notes"],
-            properties: { present:{type:"boolean"}, notes:{type:"string"} } // deutsch
+            properties: { present:{type:"boolean"}, notes:{type:"string"} }
           }
         }
       };
 
       const instructions = [
-        "Du bist ein sorgfältiger Vision-Assistent.",
-        "Erkenne NUR visuell Vorhandenes; keine Gerüche/Symptome erfinden.",
-        "Fülle alle feature_flags als boolesche Werte aus dem Bild.",
-        "Bestimme die Bristol-Skala (1..7).",
-        "Weich/breiig (6) bzw. wässrig (7) muss sich in bristol + Flags widerspiegeln.",
-        "Setze vision_quality = good/fair/poor nach Licht/Schärfe/Verdeckung.",
-        "Markiere red_flags, wenn deutlich rotes Blut oder teerartig schwarz.",
-        "Antworte ausschließlich auf Deutsch in allen Freitextfeldern."
+        "Du extrahierst NUR sichtbare Merkmale (keine Gerüche/Symptome erfinden).",
+        "Fülle alle Booleans, setze Bristol (1–7), und markiere klare Warnzeichen.",
+        "Freitexte auf Deutsch, kurz und einfach (max. 2 Sätze, keine Fachwörter)."
       ].join(" ");
 
       const body = {
@@ -1065,7 +876,7 @@
             { type:"input_image", image_url: imageDataUrl, detail: "high" }
           ]}
         ],
-        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v3", strict:true, schema } }
+        text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_simple", strict:true, schema } }
       };
 
       const API_URL = "https://api.openai.com/v1/responses";
@@ -1080,8 +891,6 @@
       }
       return await res.json();
     }
-
-    // END
   </script>
 </body>
 </html>
