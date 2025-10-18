@@ -30,62 +30,42 @@
       <span class="btn btn-ghost normal-case text-xl font-extrabold text-primary">ANALyze</span>
       <span class="hidden sm:inline text-sm text-base-content/60 ml-1">Stuhl AI Analyzer</span>
     </div>
-    <div class="flex-none">
-      <!-- Saved-state pill -->
-      <span id="keyPill" class="badge badge-neutral mr-2 hidden">Key gespeichert</span>
-      <span id="tagPill" class="badge badge-neutral mr-2 hidden">Affiliate gespeichert</span>
-      <!-- Settings modal trigger -->
-      <button class="btn btn-ghost" onclick="settingsDialog.showModal()" aria-label="Einstellungen">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
-             stroke-linejoin="round" stroke-width="2"
-             d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.89 3.31.877 2.42 2.42a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.89 1.543-.877 3.31-2.42 2.42a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.89-3.31-.877-2.42-2.42a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.89-1.543.877-3.31 2.42-2.42.997.575 2.247.22 2.573-1.066z"/>
-        </svg>
-      </button>
+    <div class="flex-none gap-2 pr-2">
+      <span id="keyPill" class="badge badge-success hidden">Key gespeichert</span>
+      <span id="tagPill" class="badge badge-neutral hidden">Affiliate gespeichert</span>
     </div>
   </div>
 
-  <!-- First-run setup banner -->
-  <div id="setupBanner" class="container mx-auto max-w-2xl px-4 sm:px-6 md:px-8 mt-4 hidden">
-    <div class="alert alert-info shadow">
-      <div>
-        <span class="font-semibold">Willkommen! </span>
-        <span>Bitte trage zuerst deinen <b>OpenAI API Key</b> (und optional dein <b>Amazon-Affiliate-Tag</b>) ein. Danach kannst du sofort mit „ANALyze“ starten.</span>
+  <!-- Always-visible Quick Setup -->
+  <div class="container mx-auto max-w-3xl px-4 sm:px-6 md:px-8 mt-4">
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body gap-4">
+        <h2 class="card-title">Schnellstart</h2>
+        <p class="text-sm text-base-content/70">Trage hier deinen <b>OpenAI API Key</b> ein (lokal gespeichert). Optional dein <b>Amazon Affiliate-Tag</b>.</p>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <label class="form-control sm:col-span-2">
+            <span class="label-text mb-1">OpenAI API Key</span>
+            <div class="join w-full">
+              <input id="apiKey" type="password" class="input input-bordered join-item w-full" placeholder="sk-..." />
+              <button id="toggleKey" class="btn join-item" type="button" aria-label="Key anzeigen/ausblenden">👁️</button>
+            </div>
+            <span class="label-text-alt mt-1">Bleibt nur in deinem Browser (localStorage).</span>
+          </label>
+          <label class="form-control">
+            <span class="label-text mb-1">Affiliate-Tag (.de)</span>
+            <input id="amazonTag" class="input input-bordered w-full" placeholder="deinTag-21" />
+            <span class="label-text-alt mt-1">Optional, Standard: hohlfeld-21</span>
+          </label>
+        </div>
+        <div class="card-actions">
+          <button id="saveSettings" class="btn btn-primary">Speichern</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Settings Modal -->
-  <dialog id="settingsDialog" class="modal">
-    <form method="dialog" class="modal-box max-w-md">
-      <h3 class="font-bold text-lg mb-2">Einstellungen</h3>
-      <p class="text-sm text-base-content/70 mb-4">Dein API-Key & Affiliate-Tag werden nur lokal im Browser gespeichert.</p>
-
-      <label class="form-control mb-3">
-        <div class="label"><span class="label-text">OpenAI API Key</span></div>
-        <input id="apiKey" type="password" class="input input-bordered w-full" placeholder="sk-..." />
-        <div class="label"><span class="label-text-alt">Erforderlich, um die Analyse auszuführen.</span></div>
-      </label>
-
-      <label class="form-control mb-2">
-        <div class="label"><span class="label-text">Amazon Affiliate-Tag (.de)</span></div>
-        <input id="amazonTag" type="text" class="input input-bordered w-full" placeholder="deinTag-21" />
-      </label>
-
-      <div class="modal-action">
-        <button id="saveSettings" class="btn btn-primary">Speichern</button>
-        <button class="btn">Schließen</button>
-      </div>
-    </form>
-    <form method="dialog" class="modal-backdrop">
-      <button>close</button>
-    </form>
-  </dialog>
-
-  <!-- Body -->
-  <div class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8">
-
-    <!-- Main Card -->
+  <!-- Main -->
+  <div class="container mx-auto max-w-3xl p-4 sm:p-6 md:p-8">
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body items-center text-center">
 
@@ -121,7 +101,7 @@
           </div>
         </section>
 
-        <!-- Single Action Button (stateful) -->
+        <!-- Single Action Button -->
         <div class="card-actions w-full justify-center mt-6">
           <button id="actionButton" class="btn btn-primary w-full sm:w-auto tap-target">
             ANALyze
@@ -177,10 +157,9 @@
       toasts: document.getElementById('toast-container'),
       keyPill: document.getElementById('keyPill'),
       tagPill: document.getElementById('tagPill'),
-      setupBanner: document.getElementById('setupBanner'),
-      settingsDialog: document.getElementById('settingsDialog'),
 
       apiKey: document.getElementById('apiKey'),
+      toggleKey: document.getElementById('toggleKey'),
       amazonTag: document.getElementById('amazonTag'),
       saveSettings: document.getElementById('saveSettings'),
 
@@ -222,28 +201,26 @@
         els.amazonTag.value= localStorage.getItem('amazonAffiliateTag') || 'hohlfeld-21';
       } catch(_) {}
 
-      // Show pills if saved
       updatePills();
 
-      // If no API key yet → show setup banner + auto-open settings
-      if (!els.apiKey.value.trim()) {
-        els.setupBanner.classList.remove('hidden');
-        // small delay so modal animates nicely
-        setTimeout(()=> settingsDialog.showModal(), 150);
-      }
-
-      // Events
       els.saveSettings.addEventListener('click', onSaveSettings);
+      els.toggleKey.addEventListener('click', toggleKeyVisibility);
       els.actionButton.addEventListener('click', onActionButton);
       els.stoolImage.addEventListener('change', onImageChosen);
       els.resetButton.addEventListener('click', resetApp);
 
-      // Autosave on blur for convenience
-      els.apiKey.addEventListener('blur', onSaveSettings);
-      els.amazonTag.addEventListener('blur', onSaveSettings);
+      // Autosave on blur / input for ease
+      els.apiKey.addEventListener('input', autoSaveSettings);
+      els.amazonTag.addEventListener('input', autoSaveSettings);
 
       renderBars(0,0,0); // placeholder
     })();
+
+    function toggleKeyVisibility(){
+      const isPwd = els.apiKey.type === 'password';
+      els.apiKey.type = isPwd ? 'text' : 'password';
+      els.toggleKey.textContent = isPwd ? '🙈' : '👁️';
+    }
 
     function updatePills(){
       const hasKey = !!els.apiKey.value.trim();
@@ -261,18 +238,22 @@
         localStorage.setItem('amazonAffiliateTag', tag || 'hohlfeld-21');
         updatePills();
         toast('Einstellungen gespeichert', false);
-      } catch (err) {
+      } catch {
         toast('Konnte Einstellungen nicht speichern');
       }
-      // Keep dialog open if user clicked outside of main Save
       return false;
+    }
+
+    let _saveTimeout;
+    function autoSaveSettings(){
+      clearTimeout(_saveTimeout);
+      _saveTimeout = setTimeout(onSaveSettings, 400);
     }
 
     function onActionButton(){
       const key = (els.apiKey.value || '').trim();
       if (!key) {
         toast('Bitte zuerst deinen OpenAI API Key eintragen.');
-        settingsDialog.showModal();
         return;
       }
       if (step === 'upload') {
@@ -352,7 +333,7 @@
 
       // 4) Combine AI + Heuristics (confidence-weighted) and render
       const final = combineScores(aiObj.likelihoods, heur, Number(aiObj.confidence||60)); // [protein,fat,carb]
-      renderBars(final[1], final[0], final[2]); // order to display: fat, protein, carb
+      renderBars(final[1], final[0], final[2]); // display order: fat, protein, carb
       els.analysisSummary.textContent = (aiObj.summary || '').trim();
 
       if (aiObj.red_flags?.present || aiObj.red_flags?.notes) {
@@ -376,136 +357,124 @@
       els.recommendationSection.classList.remove('hidden');
     }
 
- async function precheckIsStool(key, imageDataUrl){
-  const schema = {
-    type: "object",
-    additionalProperties: false,
-    required: ["is_stool"],
-    properties: { is_stool: { type: "boolean" }, notes: { type: "string" } }
-  };
-
-  const payload = {
-    model: "gpt-4o-mini",
-    instructions: "Decide if the image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
-    input: [{
-      role: "user",
-      content: [
-        { type: "input_text",  text: "Return JSON only." },
-        { type: "input_image", image_url: imageDataUrl }
-      ]
-    }],
-    temperature: 0,
-    max_output_tokens: 50,
-    text: {
-      format: {
-        type: "json_schema",
-        name: "StoolPrecheck",  // ✅ required at this level
-        schema,                 // ✅ use `schema`, not `json_schema`
-        strict: true
-      }
-    }
-  };
-
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  const txt  = extractOutputText(data);
-  const obj  = safeParseJSON(txt);
-  return !!(obj && obj.is_stool === true);
-}
-
-
-async function analyzeWithOpenAI(key, imageDataUrl, observations){
-  const instructions = [
-    "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
-    "Analysiere Heuristiken: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
-    `Nutzer-Beobachtungen: klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
-    "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
-    "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
-    "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
-    "Antwort NUR als JSON gemäß Schema."
-  ].join(" ");
-
-  const schema = {
-    type: "object",
-    additionalProperties: false,
-    required: ["summary","likelihoods","recommendations","confidence","red_flags"],
-    properties: {
-      summary: { type: "string" },
-      likelihoods: {
+    // ---------- OpenAI: Precheck via Responses (strict schema; with required name+schema) ----------
+    async function precheckIsStool(key, imageDataUrl){
+      const schema = {
         type: "object",
         additionalProperties: false,
-        required: ["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
-        properties: {
-          fat_maldigestion:     { type: "number", minimum: 0, maximum: 100 },
-          protein_maldigestion: { type: "number", minimum: 0, maximum: 100 },
-          carb_maldigestion:    { type: "number", minimum: 0, maximum: 100 }
-        }
-      },
-      red_flags: {
-        type: "object",
-        additionalProperties: false,
-        required: ["present"],
-        properties: { present: { type: "boolean" }, notes: { type: "string" } }
-      },
-      recommendations: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["enzyme","amazon_keywords"],
-          properties: {
-            category:        { type: "string" },
-            enzyme:          { type: "string" },
-            notes:           { type: "string" },
-            dose_hint:       { type: "string" },
-            amazon_keywords: { type: "string" }
+        required: ["is_stool"],
+        properties: { is_stool: { type: "boolean" }, notes: { type: "string" } }
+      };
+
+      const payload = {
+        model: "gpt-4o-mini",
+        instructions: "Decide if the image is a photograph of human stool in a toilet. Return ONLY JSON per schema.",
+        input: [{
+          role: "user",
+          content: [
+            { type: "input_text", text: "Return JSON only." },
+            { type: "input_image", image_url: imageDataUrl }
+          ]
+        }],
+        temperature: 0,
+        max_output_tokens: 50,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "StoolPrecheck",
+            schema,
+            strict: true
           }
         }
-      },
-      confidence: { type: "number", minimum: 0, maximum: 100 }
+      };
+
+      const res = await fetch("https://api.openai.com/v1/responses", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const txt = extractOutputText(data);
+      const obj = safeParseJSON(txt);
+      return !!(obj && obj.is_stool === true);
     }
-  };
 
-  const payload = {
-    model: "gpt-4o-mini",
-    instructions,
-    input: [{
-      role: "user",
-      content: [
-        { type: "input_text",  text: "Analysiere das Bild und gib NUR JSON gemäß Schema aus." },
-        { type: "input_image", image_url: imageDataUrl }
-      ]
-    }],
-    temperature: 0,
-    max_output_tokens: 900,
-    text: {
-      format: {
-        type: "json_schema",
-        name: "StoolDigestiveAssessment", // ✅ required
-        schema,                           // ✅ use `schema`
-        strict: true
-      }
+    // ---------- OpenAI: Main Analysis (Responses + JSON Schema; with required name+schema) ----------
+    async function analyzeWithOpenAI(key, imageDataUrl, observations){
+      const instructions = [
+        "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
+        "Analysiere Heuristiken: Farbe, Konsistenz, Glanz/Ölfilm, Fettaugen, unverdautes Essen.",
+        `Nutzer-Beobachtungen: klebrig=${observations.sticky}, fauliger Geruch=${observations.smelly}, wässrig+Blähungen=${observations.watery}.`,
+        "Gib 0–100 für fat_maldigestion, protein_maldigestion, carb_maldigestion.",
+        "Erkenne Red Flags (Blut, pechschwarz/Teerstuhl, massenhaft Schleim, extreme Wässrigkeit).",
+        "Empfehle ggf. Pankreatin/Lipase, Laktase, α-Galaktosidase, Bromelain/Papain, Multi-Digestiv.",
+        "Antwort NUR als JSON gemäß Schema."
+      ].join(" ");
+
+      const schema = {
+        type:"object", additionalProperties:false,
+        required:["summary","likelihoods","recommendations","confidence","red_flags"],
+        properties:{
+          summary:{ type:"string" },
+          likelihoods:{ type:"object", additionalProperties:false, required:["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
+            properties:{
+              fat_maldigestion:{ type:"number", minimum:0, maximum:100 },
+              protein_maldigestion:{ type:"number", minimum:0, maximum:100 },
+              carb_maldigestion:{ type:"number", minimum:0, maximum:100 }
+            }
+          },
+          red_flags:{ type:"object", additionalProperties:false, required:["present"],
+            properties:{ present:{ type:"boolean" }, notes:{ type:"string" } }
+          },
+          recommendations:{ type:"array", items:{
+            type:"object", additionalProperties:false, required:["enzyme","amazon_keywords"],
+            properties:{
+              category:{ type:"string" },
+              enzyme:{ type:"string" },
+              notes:{ type:"string" },
+              dose_hint:{ type:"string" },
+              amazon_keywords:{ type:"string" }
+            }
+          }},
+          confidence:{ type:"number", minimum:0, maximum:100 }
+        }
+      };
+
+      const payload = {
+        model: "gpt-4o-mini",
+        instructions,
+        input: [{
+          role: "user",
+          content: [
+            { type: "input_text", text: "Analysiere das Bild und gib NUR JSON gemäß Schema aus." },
+            { type: "input_image", image_url: imageDataUrl }
+          ]
+        }],
+        temperature: 0,
+        max_output_tokens: 900,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "StoolDigestiveAssessment",
+            schema,
+            strict: true
+          }
+        }
+      };
+
+      const res = await fetch("https://api.openai.com/v1/responses", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const txt = extractOutputText(data);
+      const obj = safeParseJSON(txt);
+      if (!obj) throw new Error("Ungültiges Modellformat.");
+      return obj;
     }
-  };
-
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  const txt  = extractOutputText(data);
-  const obj  = safeParseJSON(txt);
-  if (!obj) throw new Error("Ungültiges Modellformat.");
-  return obj;
-}
-
 
     // ---------- Rendering ----------
     function renderBars(fatPct, proteinPct, carbPct){
