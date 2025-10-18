@@ -26,7 +26,7 @@
     /* Vorschau – kleine, zentrierte Fläche */
     #previewBox { width: 220px; margin-inline: auto; position: relative; }
     #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: hsl(var(--b2)); }
-    /* Overlay-Button direkt auf dem Canvas */
+    /* Overlay-Button direkt AUF dem Canvas */
     #overlayToggle { position: absolute; top: .5rem; right: .5rem; }
   </style>
 </head>
@@ -94,8 +94,8 @@
                   <span>📷</span>
                 </div>
               </div>
-              <div class="font-semibold">Hier tippen/klicken, ziehen & ablegen, oder <span class="kbd kbd-xs">Strg/Cmd</span> + <span class="kbd kbd-xs">V</span> zum Einfügen</div>
-              <div class="text-xs text-base-content/60">Tipps: gutes Licht, näher ran, kein Blitz.</div>
+              <div class="font-semibold">Tippen/klicken, ziehen & ablegen, oder <span class="kbd kbd-xs">Strg/Cmd</span> + <span class="kbd kbd-xs">V</span></div>
+              <div class="text-xs text-base-content/60">Tipp: gutes Licht, näher ran, kein Blitz.</div>
             </div>
           </div>
           <input id="fileInput" type="file" accept="image/*" class="hidden" />
@@ -112,9 +112,9 @@
                 <span class="label-text">Verpixelte Vorschau (nur Anzeige)</span>
               </label>
             </div>
-            <div class="mt-2 flex gap-2">
-              <button id="btnReplace" class="btn btn-outline btn-sm w-full">Foto ersetzen</button>
-              <button id="btnClear" class="btn btn-ghost btn-sm w-full">Zurücksetzen</button>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button id="btnReplace" class="btn btn-outline btn-sm">Foto ersetzen</button>
+              <button id="btnClear" class="btn btn-ghost btn-sm">Zurücksetzen</button>
             </div>
           </div>
         </section>
@@ -122,24 +122,7 @@
         <!-- 2) Analyse -->
         <section class="mt-5 text-center">
           <h2 class="card-title justify-center">2. Analysieren</h2>
-          <p class="text-xs text-base-content/60 mt-1">Optional: kurze Beobachtungen ankreuzen</p>
-
-          <div class="grid grid-cols-1 gap-2 mt-3">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsSticky" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Klebrig/Schmierfilm? (Fett)</span>
-            </label>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsSmelly" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Sehr strenger Geruch? (Protein)</span>
-            </label>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input id="obsWatery" type="checkbox" class="checkbox checkbox-primary" />
-              <span class="label-text">Wässrig + Blähungen? (KH)</span>
-            </label>
-          </div>
-
-          <button id="analyze" class="btn btn-primary btn-lg w-full mt-3">Analyse starten</button>
+          <button id="analyze" class="btn btn-primary btn-lg w-full mt-2">Analyse starten</button>
           <div id="progress" class="mt-3 hidden">
             <progress class="progress progress-primary w-full"></progress>
             <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
@@ -150,7 +133,10 @@
         <section id="results" class="hidden mt-6">
           <h2 class="card-title justify-center">3. Ergebnis</h2>
 
-          <div class="mb-2 text-sm text-center">
+          <!-- Zurücksetzen gut sichtbar (volle Breite, oben) -->
+          <button id="reset" class="btn btn-ghost w-full mt-2">Neustart / anderes Foto</button>
+
+          <div class="mb-2 text-sm text-center mt-2">
             <span class="badge badge-success">Visuelle Auswertung (Deutsch)</span>
             <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
           </div>
@@ -166,21 +152,19 @@
           <!-- Empfehlungen & Kaufen -->
           <div id="recs" class="mt-5 hidden">
             <h3 class="font-semibold mb-3 text-center">Empfehlungen & Kaufen</h3>
+            <p class="text-xs text-base-content/60 text-center -mt-2 mb-3">
+              Kurz-Hinweis: gemäß Packung einnehmen (meist zu Beginn der Mahlzeit). Ziel: Beschwerden lindern (z. B. Blähungen, fettiger Stuhl, Geruch).
+            </p>
             <div id="recsWrap" class="space-y-3"></div>
             <p class="text-[11px] text-base-content/60 mt-2 text-center">
-              Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung – Packungsangaben beachten.
+              Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung.
             </p>
           </div>
 
           <!-- Quick Actions -->
           <div class="mt-5 flex flex-wrap gap-2 justify-center">
             <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
-            <button id="btnCopy" class="btn btn-ghost btn-sm">Text kopieren</button>
             <button id="btnDownload" class="btn btn-ghost btn-sm">PNG speichern</button>
-          </div>
-
-          <div class="card-actions justify-center mt-4">
-            <button id="reset" class="btn btn-ghost">Neues Foto</button>
           </div>
         </section>
       </div>
@@ -207,22 +191,18 @@
       fileInput: document.getElementById('fileInput'),
 
       previewWrap: document.getElementById('previewWrap'),
-      previewBox: document.getElementById('previewBox'),
       previewCanvas: document.getElementById('previewCanvas'),
       overlayToggle: document.getElementById('overlayToggle'),
       pixelSwitch: document.getElementById('pixelSwitch'),
       btnReplace: document.getElementById('btnReplace'),
       btnClear: document.getElementById('btnClear'),
 
-      obsSticky: document.getElementById('obsSticky'),
-      obsSmelly: document.getElementById('obsSmelly'),
-      obsWatery: document.getElementById('obsWatery'),
-
       analyze: document.getElementById('analyze'),
       progress: document.getElementById('progress'),
       progressMsg: document.getElementById('progressMsg'),
 
       results: document.getElementById('results'),
+      reset: document.getElementById('reset'),
       qualityBadge: document.getElementById('qualityBadge'),
       redFlags: document.getElementById('redFlags'),
       bars: document.getElementById('bars'),
@@ -231,9 +211,7 @@
       recsWrap: document.getElementById('recsWrap'),
 
       btnShare: document.getElementById('btnShare'),
-      btnCopy: document.getElementById('btnCopy'),
       btnDownload: document.getElementById('btnDownload'),
-      reset: document.getElementById('reset'),
     };
 
     // ===== State =====
@@ -243,9 +221,27 @@
 
     // ===== Statische Produkte (Amazon /dp/ASIN) =====
     const PRODUCTS = {
-      carb:    { key:"carb",    title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).", subtitle:"KH-Enzyme" },
-      fat:     { key:"fat",     title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)", asin:"B00ELU7SSM", note:"Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.", subtitle:"Fett-Enzyme" },
-      protein: { key:"protein", title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln", asin:"B09C1XV3P3", note:"Bei eiweißlastigen Speisen / sehr strengem Geruch.", subtitle:"Protein-Enzyme" }
+      carb: {
+        key:"carb",
+        title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
+        asin:"B07PTKTLMJ",
+        note:"Zu Beginn blähender KH-Mahlzeiten; kann Gas/Blähungen vermindern.",
+        subtitle:"KH-Enzyme"
+      },
+      fat: {
+        key:"fat",
+        title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
+        asin:"B00ELU7SSM",
+        note:"Zu fettreichen Mahlzeiten; kann fettigen, schmierigen Stuhl reduzieren.",
+        subtitle:"Fett-Enzyme"
+      },
+      protein: {
+        key:"protein",
+        title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
+        asin:"B09C1XV3P3",
+        note:"Zu eiweißreichen Mahlzeiten; kann starken Geruch mindern.",
+        subtitle:"Protein-Enzyme"
+      }
     };
 
     // ===== Init =====
@@ -295,7 +291,6 @@
 
       els.btnShare.addEventListener('click', onShare);
       els.btnDownload.addEventListener('click', onDownload);
-      els.btnCopy.addEventListener('click', copyResultText);
     })();
 
     function saveLocal(k, v){ try { localStorage.setItem(k, v); } catch {} }
@@ -403,9 +398,6 @@
       imageDataUrl = null;
       loadedImg = null;
       els.previewWrap.classList.add('hidden');
-      els.obsSticky.checked = false;
-      els.obsSmelly.checked = false;
-      els.obsWatery.checked = false;
       els.results.classList.add('hidden');
       els.redFlags.classList.add('hidden'); els.redFlags.innerHTML = '';
       els.bars.innerHTML = '';
@@ -445,8 +437,7 @@
     }
 
     async function renderFinal(vo){
-      const obs = { sticky: els.obsSticky.checked, smelly: els.obsSmelly.checked, watery: els.obsWatery.checked };
-      const { percents } = computeScoresFromFeatures(vo, obs);
+      const { percents } = computeScoresFromFeatures(vo);
 
       const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
@@ -536,7 +527,7 @@
         </div>
       `);
 
-      // Weitere (kleiner, aber klar)
+      // Weitere (kompakt)
       others.forEach(it=>{
         const good = it.score >= 40;
         const badgeCls = good ? 'badge-success' : 'badge-ghost';
@@ -586,7 +577,7 @@
       return 'Unauffällig, aber nicht eindeutig.';
     }
 
-    // ===== Teilen/Download/Text kopieren =====
+    // ===== Teilen/Download =====
     async function onShare(){
       try{
         const p = readPercents();
@@ -612,16 +603,6 @@
         downloadBlob(blob, 'analyse.png');
         toast('PNG gespeichert.', true);
       } catch(e){ toast('Download fehlgeschlagen: ' + limitErr(e)); }
-    }
-
-    function copyResultText(){
-      const p = readPercents();
-      const txt = [
-        'Stuhlbild-Auswertung',
-        els.summary.textContent.trim(),
-        `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`
-      ].join('\n');
-      navigator.clipboard.writeText(txt).then(()=> toast('Text kopiert.', true)).catch(()=> toast('Kopieren fehlgeschlagen.'));
     }
 
     function readPercents(){
@@ -706,8 +687,8 @@
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
-    // ===== Scoring =====
-    function computeScoresFromFeatures(vo, obs){
+    // ===== Scoring (nur Bildmerkmale) =====
+    function computeScoresFromFeatures(vo){
       const f = vo?.feature_flags || {};
       const b = Number(vo?.bristol || 0);
       const colors = Array.isArray(vo?.detected_colors) ? vo.detected_colors : [];
@@ -737,11 +718,6 @@
       if (b === 7) carb += 2.6;
       if (!f.formed_loglike && b >= 5) carb += 0.8;
       if ((b === 1 || b === 2) && f.formed_loglike) protein += 0.6;
-
-      // Nutzerhinweise (klein)
-      if (obs?.sticky) fat += 0.5;
-      if (obs?.watery) carb += 0.5;
-      if (obs?.smelly) protein += 1.5;
 
       const fatPct = clamp01(fat/12.5)*100;
       const carbPct = clamp01(carb/12.5)*100;
