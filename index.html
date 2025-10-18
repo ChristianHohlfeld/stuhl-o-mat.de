@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ANALyze – Stuhl AI Analyzer</title>
 
-  <!-- DaisyUI + Tailwind (CDN) -->
+  <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -64,7 +64,7 @@
     </div>
   </div>
 
-  <!-- Main -->
+  <!-- Main App -->
   <div class="container mx-auto max-w-3xl p-4 sm:p-6 md:p-8">
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body items-center text-center">
@@ -164,7 +164,6 @@
       saveSettings: document.getElementById('saveSettings'),
 
       stoolImage: document.getElementById('stoolImage'),
-      uploadSection: document.getElementById('uploadSection'),
       imagePreviewContainer: document.getElementById('imagePreviewContainer'),
       imagePreview: document.getElementById('imagePreview'),
 
@@ -195,7 +194,6 @@
 
     // ---------- Init ----------
     (function init(){
-      // Load cached settings
       try {
         els.apiKey.value   = localStorage.getItem('openaiApiKey') || '';
         els.amazonTag.value= localStorage.getItem('amazonAffiliateTag') || 'hohlfeld-21';
@@ -209,7 +207,7 @@
       els.stoolImage.addEventListener('change', onImageChosen);
       els.resetButton.addEventListener('click', resetApp);
 
-      // Autosave on blur / input for ease
+      // Autosave
       els.apiKey.addEventListener('input', autoSaveSettings);
       els.amazonTag.addEventListener('input', autoSaveSettings);
 
@@ -233,9 +231,9 @@
       if (e) e.preventDefault();
       try {
         const key = els.apiKey.value.trim();
-        const tag = els.amazonTag.value.trim();
+        const tag = els.amazonTag.value.trim() || 'hohlfeld-21';
         localStorage.setItem('openaiApiKey', key);
-        localStorage.setItem('amazonAffiliateTag', tag || 'hohlfeld-21');
+        localStorage.setItem('amazonAffiliateTag', tag);
         updatePills();
         toast('Einstellungen gespeichert', false);
       } catch {
@@ -247,7 +245,7 @@
     let _saveTimeout;
     function autoSaveSettings(){
       clearTimeout(_saveTimeout);
-      _saveTimeout = setTimeout(onSaveSettings, 400);
+      _saveTimeout = setTimeout(onSaveSettings, 350);
     }
 
     function onActionButton(){
@@ -357,13 +355,16 @@
       els.recommendationSection.classList.remove('hidden');
     }
 
-    // ---------- OpenAI: Precheck via Responses (strict schema; with required name+schema) ----------
+    // ---------- OpenAI: Precheck via Responses (strict schema; name+schema required) ----------
     async function precheckIsStool(key, imageDataUrl){
       const schema = {
         type: "object",
         additionalProperties: false,
-        required: ["is_stool"],
-        properties: { is_stool: { type: "boolean" }, notes: { type: "string" } }
+        required: ["is_stool", "notes"], // alle properties auch required
+        properties: {
+          is_stool: { type: "boolean" },
+          notes:    { type: "string" }
+        }
       };
 
       const payload = {
@@ -400,7 +401,7 @@
       return !!(obj && obj.is_stool === true);
     }
 
-    // ---------- OpenAI: Main Analysis (Responses + JSON Schema; with required name+schema) ----------
+    // ---------- OpenAI: Main Analysis (Responses + JSON Schema; name+schema required) ----------
     async function analyzeWithOpenAI(key, imageDataUrl, observations){
       const instructions = [
         "Du bist ein vorsichtiger Gesundheits-Assistent (keine Diagnose).",
@@ -413,30 +414,42 @@
       ].join(" ");
 
       const schema = {
-        type:"object", additionalProperties:false,
+        type:"object",
+        additionalProperties:false,
         required:["summary","likelihoods","recommendations","confidence","red_flags"],
         properties:{
           summary:{ type:"string" },
-          likelihoods:{ type:"object", additionalProperties:false, required:["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
+          likelihoods:{
+            type:"object",
+            additionalProperties:false,
+            required:["fat_maldigestion","protein_maldigestion","carb_maldigestion"],
             properties:{
               fat_maldigestion:{ type:"number", minimum:0, maximum:100 },
               protein_maldigestion:{ type:"number", minimum:0, maximum:100 },
               carb_maldigestion:{ type:"number", minimum:0, maximum:100 }
             }
           },
-          red_flags:{ type:"object", additionalProperties:false, required:["present"],
+          red_flags:{
+            type:"object",
+            additionalProperties:false,
+            required:["present","notes"],
             properties:{ present:{ type:"boolean" }, notes:{ type:"string" } }
           },
-          recommendations:{ type:"array", items:{
-            type:"object", additionalProperties:false, required:["enzyme","amazon_keywords"],
-            properties:{
-              category:{ type:"string" },
-              enzyme:{ type:"string" },
-              notes:{ type:"string" },
-              dose_hint:{ type:"string" },
-              amazon_keywords:{ type:"string" }
+          recommendations:{
+            type:"array",
+            items:{
+              type:"object",
+              additionalProperties:false,
+              required:["category","enzyme","notes","dose_hint","amazon_keywords"],
+              properties:{
+                category:{ type:"string" },
+                enzyme:{ type:"string" },
+                notes:{ type:"string" },
+                dose_hint:{ type:"string" },
+                amazon_keywords:{ type:"string" }
+              }
             }
-          }},
+          },
           confidence:{ type:"number", minimum:0, maximum:100 }
         }
       };
@@ -455,10 +468,10 @@
         max_output_tokens: 900,
         text: {
           format: {
-            type: "json_schema",
-            name: "StoolDigestiveAssessment",
+            type:"json_schema",
+            name:"StoolDigestiveAssessment",
             schema,
-            strict: true
+            strict:true
           }
         }
       };
@@ -478,7 +491,6 @@
 
     // ---------- Rendering ----------
     function renderBars(fatPct, proteinPct, carbPct){
-      // Normalize to 100 (defensive)
       const norm = roundHundred([+fatPct||0, +proteinPct||0, +carbPct||0]);
       const rows = [
         { label:"Fett-Maldigestion",    val:norm[0], cls:"progress-success" },
@@ -598,7 +610,6 @@
     }
 
     function extractOutputText(data){
-      // Responses API helpers
       if (typeof data?.output_text === 'string') return data.output_text;
       const blocks = data?.output?.[0]?.content;
       if (Array.isArray(blocks)) {
