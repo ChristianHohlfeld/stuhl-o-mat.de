@@ -16,17 +16,14 @@
 
   <style>
     body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    /* Dropzone */
     .dropzone {
       border: 2px dashed hsl(var(--b3));
       border-radius: .75rem;
       transition: .15s ease;
     }
     .dropzone.dragover { border-color: hsl(var(--p)); background: hsl(var(--p) / .06); }
-    /* Vorschau – kleine, zentrierte Fläche */
     #previewBox { width: 220px; margin-inline: auto; position: relative; }
     #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: hsl(var(--b2)); }
-    /* Overlay-Button direkt AUF dem Canvas */
     #overlayToggle { position: absolute; top: .5rem; right: .5rem; }
   </style>
 </head>
@@ -163,8 +160,8 @@
 
           <!-- Quick Actions -->
           <div class="mt-5 flex flex-wrap gap-2 justify-center">
-            <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
-            <button id="btnCopy" class="btn btn-ghost btn-sm">Text kopieren</button>
+            <button id="btnShare" class="btn btn-primary btn-sm">Teilen (mit Link)</button>
+            <button id="btnCopy" class="btn btn-ghost btn-sm">Text + Link kopieren</button>
           </div>
         </section>
       </div>
@@ -176,6 +173,9 @@
   </div>
 
   <script>
+    // ===== Konstante: App-URL für Share/Kopieren =====
+    const APP_URL = "https://stuhl-o-mat.de";
+
     // ===== Elemente =====
     const els = {
       toasts: document.getElementById('toasts'),
@@ -221,27 +221,9 @@
 
     // ===== Statische Produkte (Amazon /dp/ASIN) =====
     const PRODUCTS = {
-      carb: {
-        key:"carb",
-        title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
-        asin:"B07PTKTLMJ",
-        note:"Zu Beginn blähender KH-Mahlzeiten; kann Gas/Blähungen vermindern.",
-        subtitle:"KH-Enzyme"
-      },
-      fat: {
-        key:"fat",
-        title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
-        asin:"B00ELU7SSM",
-        note:"Zu fettreichen Mahlzeiten; kann fettigen, schmierigen Stuhl reduzieren.",
-        subtitle:"Fett-Enzyme"
-      },
-      protein: {
-        key:"protein",
-        title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
-        asin:"B09C1XV3P3",
-        note:"Zu eiweißreichen Mahlzeiten; kann starken Geruch mindern.",
-        subtitle:"Protein-Enzyme"
-      }
+      carb:   { key:"carb", title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Zu Beginn blähender KH-Mahlzeiten; kann Gas/Blähungen vermindern.", subtitle:"KH-Enzyme" },
+      fat:    { key:"fat", title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)", asin:"B00ELU7SSM", note:"Zu fettreichen Mahlzeiten; kann fettigen, schmierigen Stuhl reduzieren.", subtitle:"Fett-Enzyme" },
+      protein:{ key:"protein", title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln", asin:"B09C1XV3P3", note:"Zu eiweißreichen Mahlzeiten; kann starken Geruch mindern.", subtitle:"Protein-Enzyme" }
     };
 
     // ===== Init =====
@@ -272,7 +254,7 @@
         if (file) { handleFile(file); toast('Bild aus Zwischenablage eingefügt', true); }
       });
 
-      // Pixel-Toggle: Button auf Canvas + Switch darunter
+      // Pixel-Toggle: Button auf Canvas + Schalter darunter
       els.previewCanvas.addEventListener('click', togglePixelPreview);
       els.overlayToggle.addEventListener('click', (e)=>{ e.stopPropagation(); togglePixelPreview(); });
       els.pixelSwitch.addEventListener('change', ()=>{
@@ -332,9 +314,7 @@
 
     function setStep(n){
       const clsOn = 'step-primary';
-      [els.step1,els.step2,els.step3].forEach((el,i)=>{
-        el.classList.toggle(clsOn, i < n);
-      });
+      [els.step1,els.step2,els.step3].forEach((el,i)=> el.classList.toggle(clsOn, i < n));
     }
 
     function fileToDataURL(file){
@@ -360,7 +340,7 @@
       const img = loadedImg;
       if (!img) return;
 
-      const targetW = 220; // kleine feste Breite
+      const targetW = 220;
       const ratio = img.naturalHeight / img.naturalWidth;
       const targetH = Math.max(1, Math.round(targetW * ratio));
 
@@ -414,13 +394,11 @@
 
       setLoading(true, 'Foto wird geprüft…');
       try {
-        // 1) Vorprüfung
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const ptxt = extractJSONText(pre);
         const pobj = safeParseJSON(ptxt);
         if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
-        // 2) Extraktion
         setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, imageDataUrl);
         const rtxt = extractJSONText(res);
@@ -501,7 +479,6 @@
         { ...PRODUCTS.protein, score: Number(p.protein||0) },
         { ...PRODUCTS.fat,     score: Number(p.fat||0) }
       ];
-      // Top-Empfehlung wählen
       let top = items[0];
       for (let i=1; i<items.length; i++) if (items[i].score > top.score) top = items[i];
       const others = items.filter(x => x.key !== top.key);
@@ -509,7 +486,6 @@
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
 
-      // Top-Empfehlung (klar hervorgehoben)
       els.recsWrap.insertAdjacentHTML('beforeend', `
         <div class="card border-2 border-primary bg-primary/5">
           <div class="card-body">
@@ -527,7 +503,6 @@
         </div>
       `);
 
-      // Weitere (kompakt)
       others.forEach(it=>{
         const good = it.score >= 40;
         const badgeCls = good ? 'badge-success' : 'badge-ghost';
@@ -577,12 +552,10 @@
       return 'Unauffällig, aber nicht eindeutig.';
     }
 
-    // ===== Teilen & Kopieren (nur Text, ohne Produkte) =====
+    // ===== Teilen & Kopieren (Text + Link) =====
     function buildShareText(){
       const p = readPercents();
       const summary = els.summary.textContent.trim();
-
-      // Enzym-Kategorien nur nennen, keine Produkte
       const parts = [];
       if (p.carb >= 40) parts.push('KH-Enzyme');
       if (p.protein >= 40) parts.push('Protein-Enzyme');
@@ -591,10 +564,11 @@
 
       return [
         'Ich hab meinen Stuhl getestet – mach du’s auch.',
-        `Ergebnis: ${summary || 'Kurz-Auswertung verfügbar.'}`,
-        `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
-        `Empfehlung: ${enzymes}`,
-        'Finde heraus, welche Verdauungsenzyme dir fehlen – mit dieser App.'
+        `Kurzfazit: ${summary || 'Kurz-Auswertung verfügbar.'}`,
+        `Analyse-Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+        `Vermutete Enzym-Baustellen: ${enzymes}`,
+        'Finde heraus, welche Verdauungsenzyme dir fehlen – anonym & schnell:',
+        APP_URL
       ].join('\n');
     }
 
@@ -602,17 +576,19 @@
       try{
         const text = buildShareText();
         if (navigator.share){
-          await navigator.share({ title: 'Stuhlbild-Auswertung', text });
+          await navigator.share({ title: 'Stuhlbild-Auswertung', text, url: APP_URL });
         } else {
           await navigator.clipboard.writeText(text);
-          toast('Teilen nicht verfügbar – Text in Zwischenablage kopiert.', true);
+          toast('Teilen nicht verfügbar – Text + Link kopiert.', true);
         }
       } catch(e){ toast('Teilen fehlgeschlagen: ' + limitErr(e)); }
     }
 
     function copyResultText(){
       const text = buildShareText();
-      navigator.clipboard.writeText(text).then(()=> toast('Text kopiert.', true)).catch(()=> toast('Kopieren fehlgeschlagen.'));
+      navigator.clipboard.writeText(text)
+        .then(()=> toast('Text + Link kopiert.', true))
+        .catch(()=> toast('Kopieren fehlgeschlagen.'));
     }
 
     function readPercents(){
