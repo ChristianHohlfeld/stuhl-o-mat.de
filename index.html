@@ -149,11 +149,11 @@
           <!-- Kurzer Text -->
           <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
-          <!-- Empfehlungen & Kaufen -->
+          <!-- Empfehlungen (ohne "& Kaufen") -->
           <div id="recs" class="mt-5 hidden">
-            <h3 class="font-semibold mb-3 text-center">Empfehlungen & Kaufen</h3>
+            <h3 class="font-semibold mb-3 text-center">Empfehlungen</h3>
             <p class="text-xs text-base-content/60 text-center -mt-2 mb-3">
-              Kurz-Hinweis: gemäß Packung einnehmen (meist zu Beginn der Mahlzeit). Ziel: Beschwerden lindern (z. B. Blähungen, fettiger Stuhl, Geruch).
+              Kurz-Hinweis: gemäß Packung einnehmen (meist zu Beginn der Mahlzeit). Ziel: Beschwerden lindern (z. B. Blähungen, fettiger Stuhl, starker Geruch).
             </p>
             <div id="recsWrap" class="space-y-3"></div>
             <p class="text-[11px] text-base-content/60 mt-2 text-center">
@@ -164,7 +164,7 @@
           <!-- Quick Actions -->
           <div class="mt-5 flex flex-wrap gap-2 justify-center">
             <button id="btnShare" class="btn btn-primary btn-sm">Teilen</button>
-            <button id="btnDownload" class="btn btn-ghost btn-sm">PNG speichern</button>
+            <button id="btnCopy" class="btn btn-ghost btn-sm">Text kopieren</button>
           </div>
         </section>
       </div>
@@ -211,7 +211,7 @@
       recsWrap: document.getElementById('recsWrap'),
 
       btnShare: document.getElementById('btnShare'),
-      btnDownload: document.getElementById('btnDownload'),
+      btnCopy: document.getElementById('btnCopy'),
     };
 
     // ===== State =====
@@ -290,7 +290,7 @@
       els.reset.addEventListener('click', resetUI);
 
       els.btnShare.addEventListener('click', onShare);
-      els.btnDownload.addEventListener('click', onDownload);
+      els.btnCopy.addEventListener('click', copyResultText);
     })();
 
     function saveLocal(k, v){ try { localStorage.setItem(k, v); } catch {} }
@@ -520,7 +520,7 @@
             <h4 class="card-title mt-1">${escapeHTML(top.title)}</h4>
             <p class="text-sm">${escapeHTML(top.note||'')}</p>
             <div class="card-actions justify-end">
-              <a class="btn btn-primary" href="${makeUrl(top.asin)}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
+              <a class="btn btn-primary" href="${makeUrl(top.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
             </div>
             <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
           </div>
@@ -545,7 +545,7 @@
               <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
               <p class="text-sm">${escapeHTML(it.note||'')}</p>
               <div class="card-actions justify-end">
-                <a class="btn btn-primary btn-sm" href="${makeUrl(it.asin)}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
+                <a class="btn btn-primary btn-sm" href="${makeUrl(it.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
               </div>
               <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
@@ -577,114 +577,48 @@
       return 'Unauffällig, aber nicht eindeutig.';
     }
 
-    // ===== Teilen/Download =====
+    // ===== Teilen & Kopieren (nur Text, ohne Produkte) =====
+    function buildShareText(){
+      const p = readPercents();
+      const summary = els.summary.textContent.trim();
+
+      // Enzym-Kategorien nur nennen, keine Produkte
+      const parts = [];
+      if (p.carb >= 40) parts.push('KH-Enzyme');
+      if (p.protein >= 40) parts.push('Protein-Enzyme');
+      if (p.fat >= 40) parts.push('Fett-Enzyme');
+      const enzymes = parts.length ? parts.join(', ') : 'keine klaren Enzym-Hinweise';
+
+      return [
+        'Ich hab meinen Stuhl getestet – mach du’s auch.',
+        `Ergebnis: ${summary || 'Kurz-Auswertung verfügbar.'}`,
+        `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+        `Empfehlung: ${enzymes}`,
+        'Finde heraus, welche Verdauungsenzyme dir fehlen – mit dieser App.'
+      ].join('\n');
+    }
+
     async function onShare(){
       try{
-        const p = readPercents();
-        const blob = await createShareImage(p);
-        const file = new File([blob], 'analyse.png', { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files:[file] })){
-          await navigator.share({
-            title: 'Stuhlbild-Auswertung',
-            text: `KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
-            files: [file]
-          });
+        const text = buildShareText();
+        if (navigator.share){
+          await navigator.share({ title: 'Stuhlbild-Auswertung', text });
         } else {
-          downloadBlob(blob, 'analyse.png');
-          toast('Web Share nicht verfügbar – PNG heruntergeladen.', true);
+          await navigator.clipboard.writeText(text);
+          toast('Teilen nicht verfügbar – Text in Zwischenablage kopiert.', true);
         }
       } catch(e){ toast('Teilen fehlgeschlagen: ' + limitErr(e)); }
     }
 
-    async function onDownload(){
-      try{
-        const p = readPercents();
-        const blob = await createShareImage(p);
-        downloadBlob(blob, 'analyse.png');
-        toast('PNG gespeichert.', true);
-      } catch(e){ toast('Download fehlgeschlagen: ' + limitErr(e)); }
+    function copyResultText(){
+      const text = buildShareText();
+      navigator.clipboard.writeText(text).then(()=> toast('Text kopiert.', true)).catch(()=> toast('Kopieren fehlgeschlagen.'));
     }
 
     function readPercents(){
       const nodes = els.bars.querySelectorAll('progress');
       const v = i => nodes[i] ? Number(nodes[i].value||0) : 0;
       return { carb: v(0), protein: v(1), fat: v(2) };
-    }
-
-    async function createShareImage(percents){
-      if (!imageDataUrl) throw new Error('Kein Bild.');
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = imageDataUrl;
-      await img.decode();
-
-      // Stark verpixelte Quadratkachel 128×128
-      const S = 12;
-      const side = 128;
-
-      const small = document.createElement('canvas');
-      small.width = S; small.height = S;
-
-      const sctx = small.getContext('2d', { willReadFrequently:true });
-      const crop = Math.min(img.naturalWidth, img.naturalHeight);
-      const sx = (img.naturalWidth - crop)/2;
-      const sy = (img.naturalHeight - crop)/2;
-      sctx.drawImage(img, sx, sy, crop, crop, 0, 0, S, S);
-
-      const pix = document.createElement('canvas');
-      pix.width = side; pix.height = side;
-      const pctx = pix.getContext('2d');
-      pctx.imageSmoothingEnabled = false;
-      pctx.drawImage(small, 0, 0, S, S, 0, 0, side, side);
-
-      const HEADER = 22, VALUES_H = 62, GAP = 4;
-      const out = document.createElement('canvas');
-      out.width = 128; out.height = HEADER + side + GAP + VALUES_H;
-      const o = out.getContext('2d');
-
-      o.fillStyle = '#F3F4F6'; o.fillRect(0,0,out.width,out.height);
-      o.fillStyle = '#111827'; o.fillRect(0,0,out.width,HEADER);
-      o.fillStyle = '#F9FAFB'; o.font = 'bold 11px Inter, system-ui, sans-serif';
-      o.fillText('Stuhlbild-Auswertung', 6, 15);
-
-      o.imageSmoothingEnabled = false;
-      o.drawImage(pix, 0, HEADER);
-
-      o.imageSmoothingEnabled = true;
-      const top = HEADER + side + GAP;
-      drawValueRow(o, 'KH', percents.carb, 6, top + 6);
-      drawValueRow(o, 'Protein', percents.protein, 6, top + 24);
-      drawValueRow(o, 'Fett', percents.fat, 6, top + 42);
-
-      return new Promise((resolve,reject)=>{
-        out.toBlob(b => b ? resolve(b) : reject(new Error('PNG fehlgeschlagen')), 'image/png', 0.92);
-      });
-    }
-    function drawValueRow(ctx, label, val, x, y){
-      const w=116,h=8,r=4;
-      ctx.fillStyle='#111827'; ctx.font='10px Inter, system-ui, sans-serif';
-      const pct = isFinite(val) ? Math.round(val) : 0;
-      ctx.fillText(`${label} ${pct}%`, x, y-2);
-      rounded(ctx, x, y+3, w, h, r, '#E5E7EB');
-      const filled = Math.max(0, Math.min(w, Math.round(w*(pct/100))));
-      rounded(ctx, x, y+3, filled, h, r, '#60A5FA');
-    }
-    function rounded(ctx, x, y, w, h, r, color){
-      ctx.beginPath();
-      ctx.moveTo(x+r,y);
-      ctx.arcTo(x+w,y,x+w,y+h,r);
-      ctx.arcTo(x+w,y+h,x,y+h,r);
-      ctx.arcTo(x,y+h,x,y,r);
-      ctx.arcTo(x,y,x+w,y,r);
-      ctx.closePath();
-      ctx.fillStyle=color; ctx.fill();
-    }
-    function downloadBlob(blob, name){
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name; document.body.appendChild(a); a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     }
 
     // ===== Scoring (nur Bildmerkmale) =====
