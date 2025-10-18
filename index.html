@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhlbild-Analyse – Visuelle Auswertung (einfach · mobil · teilen)</title>
+  <title>Stuhlbild-Analyse – Visuelle Auswertung (mobil · einfach · teilen)</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -23,7 +23,7 @@
 </head>
 <body class="bg-base-200">
   <!-- Toasts -->
-  <div id="toasts" class="toast toast-top toast-center z-50"></div>
+  <div id="toasts" class="toast toast-top toast-center z-50" aria-live="polite"></div>
 
   <div class="container mx-auto max-w-3xl p-4 sm:p-6">
     <header class="mb-4 sm:mb-6 text-center">
@@ -239,18 +239,21 @@
     // Kategorien: KH (Alpha-Galactosidase), Fett (Pankreatin/Lipase), Protein (Bromelain, hoher GDU-Wert)
     const PRODUCTS = {
       carb: {
+        key: "carb",
         title: "sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten",
         asin: "B07PTKTLMJ",
         note: "Bei blähenden Kohlenhydraten (z. B. Hülsenfrüchte).",
         subtitle: "KH-Enzyme"
       },
       fat: {
+        key: "fat",
         title: "PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)",
         asin: "B00ELU7SSM",
         note: "Bei fettigem, schmierigem Stuhl; Lipase-Einheiten beachten.",
         subtitle: "Fett-Enzyme"
       },
       protein: {
+        key: "protein",
         title: "Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln",
         asin: "B09C1XV3P3",
         note: "Bei eiweißlastigen Speisen / sehr strengem Geruch.",
@@ -450,7 +453,7 @@
       // Einfache Kurz-Zusammenfassung
       els.summary.textContent = composePlainSummary(visionObj, percents);
 
-      // Empfehlungen & Kaufen (immer sichtbar)
+      // Empfehlungen & Kaufen (immer sichtbar) – mit Top-Empfehlung
       renderRecs(percents);
 
       els.results.classList.remove('hidden');
@@ -598,35 +601,70 @@
       }
     }
 
-    // ---------- Empfehlungen & Kaufen (immer zeigen) ----------
+    // ---------- Empfehlungen & Kaufen (immer zeigen) – mit Top-Empfehlung ----------
     function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
       const makeUrl = (asin)=> `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
 
       const items = [
-        { key:'carb',    ...PRODUCTS.carb,    score: Number(p.carb    || 0) },
-        { key:'protein', ...PRODUCTS.protein, score: Number(p.protein || 0) },
-        { key:'fat',     ...PRODUCTS.fat,     score: Number(p.fat     || 0) }
+        { ...PRODUCTS.carb,    score: Number(p.carb    || 0) },
+        { ...PRODUCTS.protein, score: Number(p.protein || 0) },
+        { ...PRODUCTS.fat,     score: Number(p.fat     || 0) }
       ];
+
+      // Top-Kategorie bestimmen (bei Gleichstand Reihenfolge KH > Protein > Fett)
+      let top = items[0];
+      for (let i=1;i<items.length;i++){
+        if (items[i].score > top.score) top = items[i];
+      }
+
+      // Für Darstellung: Top zuerst, dann die übrigen
+      const others = items.filter(it => it.key !== top.key);
 
       els.recs.classList.remove('hidden');
       els.recsWrap.innerHTML = '';
 
-      items.forEach(it=>{
-        const badgeGood = it.score >= 40;
-        const badgeCls  = badgeGood ? 'badge-success' : 'badge-ghost';
-        const badgeTxt  = badgeGood ? 'Empfehlung'    : 'Optional';
+      // TOP-EMPFEHLUNG – deutlich hervorgehoben
+      const topHref = makeUrl(top.asin);
+      els.recsWrap.insertAdjacentHTML('afterbegin', `
+        <div class="card border-2 border-primary bg-primary/5 shadow-lg">
+          <div class="card-body">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="badge badge-primary">Top-Empfehlung</span>
+                <span class="badge">${escapeHTML(top.subtitle || '')}</span>
+              </div>
+              <span class="text-sm text-base-content/70">Score: ${Math.round(top.score)}%</span>
+            </div>
+            <h4 class="card-title mt-1">${escapeHTML(top.title)}</h4>
+            <p class="text-sm">${escapeHTML(top.note || '')}</p>
+            <div class="card-actions justify-end">
+              <a class="btn btn-primary" href="${topHref}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
+            </div>
+            <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
+          </div>
+        </div>
+      `);
+
+      // ÜBRIGE – normal, aber mit Badge „Empfehlung“ ab 40 %
+      others.forEach(it=>{
         const href = makeUrl(it.asin);
+        const good = it.score >= 40;
+        const badgeCls = good ? 'badge-success' : 'badge-ghost';
+        const badgeTxt = good ? 'Empfehlung' : 'Optional';
 
         els.recsWrap.insertAdjacentHTML('beforeend', `
           <div class="card bg-base-200">
             <div class="card-body">
-              <div class="flex items-center justify-between">
-                <h4 class="card-title">${escapeHTML(it.title)}</h4>
-                <span class="badge ${badgeCls}">${badgeTxt}</span>
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span class="badge ${badgeCls}">${badgeTxt}</span>
+                  <span class="badge">${escapeHTML(it.subtitle || '')}</span>
+                </div>
+                <span class="text-sm text-base-content/60">Score: ${Math.round(it.score)}%</span>
               </div>
+              <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
               <p class="text-sm">${escapeHTML(it.note || '')}</p>
-              <p class="text-xs text-base-content/60">${escapeHTML(it.subtitle || '')} · Score: ${Math.round(it.score)}%</p>
               <div class="card-actions justify-end">
                 <a class="btn btn-primary btn-sm" href="${href}" target="_blank" rel="noopener sponsored nofollow">Kaufen</a>
               </div>
