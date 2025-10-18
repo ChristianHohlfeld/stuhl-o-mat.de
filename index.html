@@ -47,7 +47,6 @@
 
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">Modell</span></div>
-            <!-- Falls gpt-5 (Vision) bei dir nicht freigeschaltet ist: auf gpt-5-mini / gpt-4o wechseln -->
             <select id="model" class="select select-bordered w-full">
               <option value="gpt-5" selected>gpt-5 (Vision & Structured Outputs)</option>
               <option value="gpt-5-mini">gpt-5-mini</option>
@@ -351,10 +350,7 @@
         if (!obj) throw new Error('Vorprüfung lieferte kein valides JSON.');
         lastPrecheck = obj;
 
-        // Fail-open Regel:
-        // - "yes" → weiter
-        // - "uncertain" & confidence >= 0.5 → weiter (mit Unsicherheits-Badge)
-        // - "no" oder "uncertain" sehr niedrig: wir versuchen eine Zweitprüfung über Extract
+        // Fail-open Regeln
         let allow = false;
         let markUncertain = false;
         if (obj.is_stool === 'yes') {
@@ -364,7 +360,7 @@
         }
 
         if (!allow) {
-          // 2) Zweitpass (Fail-Open) – schneller Extract; wenn klare Indikatoren → trotzdem analysieren
+          // 2) Zweitprüfung
           setLoading(true, 'Zweitprüfung…');
           const res2 = await callResponses_Extract(key, model, imageDataUrl);
           const txt2 = extractJSONText(res2);
@@ -372,7 +368,6 @@
           if (!vo2) throw new Error('Zweitprüfung: Modell lieferte kein valides JSON.');
 
           if (stoolLikeFromExtract(vo2)) {
-            // akzeptieren, aber als "unsicher" markieren
             await renderFinal(vo2, { uncertain: true });
             setLoading(false);
             return;
@@ -457,10 +452,11 @@
     }
 
     // ---------- OpenAI Responses API ----------
-    // – Responses API mit 'input_text' & 'input_image'
+    // – Für input_image erwartet die API:
+    //   { type: "input_image", image_url: "<STRING-URL-ODER-DATA-URL>", detail: "high" }
+    //   (kein Objekt bei image_url!)  -> siehe Images & Vision / Responses API Docs.
     // – Structured Outputs via text.format { type:"json_schema", strict:true }
     // – Keine temperature/max_tokens gesetzt
-    // – Vision-Detail explizit: detail:"high" (in image_url-Objekt)
 
     function extractJSONText(resp) {
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
@@ -516,7 +512,7 @@
         input: [
           { role: "system", content: [{ type: "input_text", text: systemInstruction }]},
           { role: "user", content: [
-            { type: "input_image", image_url: { url: imageDataUrl, detail: "high" } },
+            { type: "input_image", image_url: imageDataUrl, detail: "high" },
             { type: "input_text", text: "Gib ausschließlich JSON gemäß Schema aus." }
           ]}
         ],
@@ -600,7 +596,7 @@
           { role:"system", content:[{ type:"input_text", text: instructions }]},
           { role:"user", content:[
             { type:"input_text", text:"Gib ausschließlich JSON gemäß Schema für dieses Bild aus."},
-            { type:"input_image", image_url: { url: imageDataUrl, detail: "high" } }
+            { type:"input_image", image_url: imageDataUrl, detail: "high" }
           ]}
         ],
         text: { format: { type:"json_schema", name:"StoolVisualExtractionDE_v2", strict:true, schema } }
