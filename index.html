@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stuhlbild-Auswertung</title>
+  <title>Stuhlbild-Auswertung – Einfach & verständlich</title>
 
   <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -25,7 +25,6 @@
     #previewBox { width: 220px; margin-inline: auto; position: relative; }
     #previewCanvas { width: 220px; height: auto; display: block; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: hsl(var(--b2)); }
     #overlayToggle { position: absolute; top: .5rem; right: .5rem; }
-    .thin { letter-spacing: .2px; }
   </style>
 </head>
 <body class="bg-base-200">
@@ -33,15 +32,14 @@
   <div id="toasts" class="toast toast-top toast-center z-50" aria-live="polite"></div>
 
   <div class="container mx-auto max-w-xl p-4 sm:p-6">
-    <header class="mb-4 text-center">
+    <header class="mb-4 sm:mb-6 text-center">
       <h1 class="text-3xl sm:text-4xl font-bold text-primary">Stuhlbild-Auswertung</h1>
-      <p class="text-base-content/70 mt-1 thin">Einfach. Klar. <strong>Keine Diagnose.</strong></p>
+      <p class="text-base-content/70 mt-2">Einfache visuelle Auswertung. <strong>Keine Diagnose.</strong></p>
     </header>
 
-    <!-- Minimal: nur das Nötigste sichtbar -->
+    <!-- Einstellungen -->
     <section class="card bg-base-100 shadow mb-4">
-      <div class="card-body gap-4">
-        <!-- API-Key (nötig), Affiliate-Tag unter "Mehr" -->
+      <div class="card-body gap-3">
         <div class="grid grid-cols-1 gap-3">
           <label class="form-control">
             <div class="label"><span class="label-text font-semibold">OpenAI API-Key</span></div>
@@ -52,109 +50,118 @@
             <div class="label"><span class="label-text-alt">Nur lokal auf diesem Gerät gespeichert.</span></div>
           </label>
 
-          <details class="collapse collapse-arrow">
-            <summary class="collapse-title px-0">Mehr Optionen</summary>
-            <div class="collapse-content px-0">
-              <label class="form-control">
-                <div class="label"><span class="label-text font-semibold">Amazon-Affiliate-Tag (.de) – optional</span></div>
-                <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
-                <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
-              </label>
-            </div>
-          </details>
+          <label class="form-control">
+            <div class="label"><span class="label-text font-semibold">Amazon-Affiliate-Tag (.de) – optional</span></div>
+            <input id="amazonTag" type="text" placeholder="deinTag-21" class="input input-bordered w-full" />
+            <div class="label"><span class="label-text-alt">Wird an Produktlinks angehängt.</span></div>
+          </label>
         </div>
+      </div>
+    </section>
 
-        <!-- Sicherheit (kurz) -->
-        <div class="alert alert-warning">
-          <span class="text-sm">Bei Blut, pechschwarzem Stuhl, starken Schmerzen, Fieber, Durchfall &gt;72 h oder Gewichtsverlust: bitte ärztlich abklären.</span>
-        </div>
+    <!-- Sicherheit -->
+    <section class="alert alert-warning shadow mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <div>
+        <div class="font-bold">Wichtiger Hinweis</div>
+        <div>Kein Medizinprodukt. Bei Blut, pechschwarzem Stuhl, starken Schmerzen, Fieber, Durchfall &gt;72 h oder Gewichtsverlust ärztlich abklären.</div>
       </div>
     </section>
 
     <main class="card bg-base-100 shadow-xl">
       <div class="card-body">
-        <!-- FOTO -->
-        <h2 class="card-title justify-center">1. Foto</h2>
-        <div id="dropzone" class="dropzone mt-2 p-4 text-center cursor-pointer select-none">
-          <div class="flex flex-col items-center gap-2">
-            <div class="avatar placeholder">
-              <div class="bg-base-300 text-base-content rounded-full w-12">
-                <span>📷</span>
-              </div>
-            </div>
-            <div class="font-semibold">Tippen/klicken, ziehen & ablegen, oder <span class="kbd kbd-xs">Strg/Cmd</span>+<span class="kbd kbd-xs">V</span></div>
-            <div class="text-xs text-base-content/60">Tipp: gutes Licht, näher ran, kein Blitz.</div>
-          </div>
-        </div>
-        <input id="fileInput" type="file" accept="image/*" class="hidden" />
+        <!-- Stepper -->
+        <ul class="steps w-full mb-2">
+          <li class="step step-primary" id="step-1">Foto</li>
+          <li class="step" id="step-2">Analyse</li>
+          <li class="step" id="step-3">Ergebnis</li>
+        </ul>
 
-        <!-- Vorschau: klein & pixel-toggle -->
-        <div id="previewWrap" class="mt-4 hidden">
-          <div id="previewBox">
-            <canvas id="previewCanvas" aria-label="Vorschau"></canvas>
-            <button id="overlayToggle" class="btn btn-xs btn-neutral/80">Pixel: AN</button>
+        <!-- 1) Bild wählen -->
+        <section>
+          <h2 class="card-title justify-center">1. Foto hinzufügen</h2>
+
+          <!-- Dropzone -->
+          <div id="dropzone" class="dropzone mt-3 p-4 text-center cursor-pointer select-none">
+            <div class="flex flex-col items-center gap-2">
+              <div class="avatar placeholder">
+                <div class="bg-base-300 text-base-content rounded-full w-12">
+                  <span>📷</span>
+                </div>
+              </div>
+              <div class="font-semibold">Tippen/klicken, ziehen & ablegen, oder <span class="kbd kbd-xs">Strg/Cmd</span> + <span class="kbd kbd-xs">V</span></div>
+              <div class="text-xs text-base-content/60">Tipp: gutes Licht, näher ran, kein Blitz.</div>
+            </div>
           </div>
-          <div class="flex items-center justify-between mt-2">
-            <label class="label cursor-pointer gap-2">
-              <input id="pixelSwitch" type="checkbox" class="toggle toggle-primary" checked />
-              <span class="label-text text-sm">Verpixelte Vorschau</span>
-            </label>
-            <div class="flex gap-2">
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
+
+          <!-- Kleine Vorschau mit Canvas + Toggle AUF dem Bild + Schalter darunter -->
+          <div id="previewWrap" class="mt-4 hidden">
+            <div id="previewBox">
+              <canvas id="previewCanvas" aria-label="Vorschau"></canvas>
+              <button id="overlayToggle" class="btn btn-xs btn-neutral/80">Pixel: AN</button>
+            </div>
+            <div class="form-control mt-2">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input id="pixelSwitch" type="checkbox" class="toggle toggle-primary" checked />
+                <span class="label-text">Verpixelte Vorschau (nur Anzeige)</span>
+              </label>
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-2">
               <button id="btnReplace" class="btn btn-outline btn-sm">Foto ersetzen</button>
               <button id="btnClear" class="btn btn-ghost btn-sm">Zurücksetzen</button>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- ANALYSE -->
-        <h2 class="card-title justify-center mt-5">2. Analyse</h2>
-        <button id="analyze" class="btn btn-primary btn-lg w-full mt-2">Analyse starten</button>
-        <div id="progress" class="mt-3 hidden">
-          <progress class="progress progress-primary w-full"></progress>
-          <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
-        </div>
+        <!-- 2) Analyse -->
+        <section class="mt-5 text-center">
+          <h2 class="card-title justify-center">2. Analysieren</h2>
+          <button id="analyze" class="btn btn-primary btn-lg w-full mt-2">Analyse starten</button>
+          <div id="progress" class="mt-3 hidden">
+            <progress class="progress progress-primary w-full"></progress>
+            <p id="progressMsg" class="mt-2 text-base-content/70">Analyse läuft…</p>
+          </div>
+        </section>
 
-        <!-- ERGEBNIS – nur Signal -->
+        <!-- 3) Ergebnis -->
         <section id="results" class="hidden mt-6">
-          <div class="flex flex-col gap-2">
-            <!-- Reset oben, klar -->
-            <button id="reset" class="btn btn-ghost w-full">Neues Foto</button>
+          <h2 class="card-title justify-center">3. Ergebnis</h2>
 
-            <!-- Warnzeichen -->
-            <div id="redFlags" class="hidden"></div>
+          <!-- Zurücksetzen gut sichtbar (volle Breite, oben) -->
+          <button id="reset" class="btn btn-ghost w-full mt-2">Neustart / anderes Foto</button>
 
-            <!-- Qualität kurz -->
-            <div class="text-center">
-              <span class="badge badge-success">Deutsch</span>
-              <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
-            </div>
+          <div class="mb-2 text-sm text-center mt-2">
+            <span class="badge badge-success">Visuelle Auswertung (Deutsch)</span>
+            <span id="qualityBadge" class="badge badge-outline ml-2 hidden"></span>
+          </div>
 
-            <!-- 3 Werte – klar und kompakt -->
-            <div id="bars" class="mt-2 space-y-3"></div>
+          <div id="redFlags" class="hidden mt-2"></div>
 
-            <!-- 1-Satz-Fazit -->
-            <p id="summary" class="mt-2 text-center bg-base-200 p-3 rounded-lg"></p>
+          <!-- Werte -->
+          <div id="bars" class="mt-4 space-y-3"></div>
 
-            <!-- Top-Empfehlung (eine Karte), weitere optional -->
-            <div id="recs" class="mt-2 hidden">
-              <h3 class="font-semibold text-center mb-2">Empfehlung</h3>
-              <div id="topRec"></div>
-              <details id="moreRecs" class="collapse collapse-arrow mt-2 hidden">
-                <summary class="collapse-title px-0">Weitere Optionen</summary>
-                <div class="collapse-content px-0">
-                  <div id="recsWrap" class="space-y-3"></div>
-                </div>
-              </details>
-              <p class="text-[11px] text-base-content/60 mt-2 text-center">
-                Einnahme i. d. R. zu Beginn der Mahlzeit. Nahrungsergänzungsmittel, kein Ersatz für ausgewogene Ernährung.
-              </p>
-            </div>
+          <!-- Kurzer Text -->
+          <p id="summary" class="mt-4 text-center bg-base-200 p-3 rounded-lg"></p>
 
-            <!-- Share – kurz & mit Link -->
-            <div class="mt-3 flex flex-wrap gap-2 justify-center">
-              <button id="btnShare" class="btn btn-primary btn-sm">Teilen (mit Link)</button>
-              <button id="btnCopy" class="btn btn-ghost btn-sm">Text + Link kopieren</button>
-            </div>
+          <!-- Empfehlungen -->
+          <div id="recs" class="mt-5 hidden">
+            <h3 class="font-semibold mb-3 text-center">Empfehlungen</h3>
+            <p class="text-xs text-base-content/60 text-center -mt-2 mb-3">
+              Kurz-Hinweis: gemäß Packung einnehmen (meist zu Beginn der Mahlzeit). Ziel: Beschwerden lindern (z. B. Blähungen, fettiger Stuhl, starker Geruch).
+            </p>
+            <div id="recsWrap" class="space-y-3"></div>
+            <p class="text-[11px] text-base-content/60 mt-2 text-center">
+              Nahrungsergänzungsmittel. Kein Ersatz für eine ausgewogene Ernährung.
+            </p>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="mt-5 flex flex-wrap gap-2 justify-center">
+            <button id="btnShare" class="btn btn-primary btn-sm">Teilen (mit Link)</button>
+            <button id="btnCopy" class="btn btn-ghost btn-sm">Text + Link kopieren</button>
           </div>
         </section>
       </div>
@@ -166,7 +173,7 @@
   </div>
 
   <script>
-    // ===== Konstante: App-URL =====
+    // ===== Konstante: App-URL für Share/Kopieren =====
     const APP_URL = "https://stuhl-o-mat.de";
 
     // ===== Elemente =====
@@ -175,6 +182,10 @@
       apiKey: document.getElementById('apiKey'),
       toggleKey: document.getElementById('toggleKey'),
       amazonTag: document.getElementById('amazonTag'),
+
+      step1: document.getElementById('step-1'),
+      step2: document.getElementById('step-2'),
+      step3: document.getElementById('step-3'),
 
       dropzone: document.getElementById('dropzone'),
       fileInput: document.getElementById('fileInput'),
@@ -196,10 +207,7 @@
       redFlags: document.getElementById('redFlags'),
       bars: document.getElementById('bars'),
       summary: document.getElementById('summary'),
-
       recs: document.getElementById('recs'),
-      topRec: document.getElementById('topRec'),
-      moreRecs: document.getElementById('moreRecs'),
       recsWrap: document.getElementById('recsWrap'),
 
       btnShare: document.getElementById('btnShare'),
@@ -207,18 +215,18 @@
     };
 
     // ===== State =====
-    let imageDataUrl = null;         // Original für Analyse
-    let pixelViewOn = true;          // Vorschau pixelig?
-    let loadedImg = null;            // HTMLImageElement für Canvas
+    let imageDataUrl = null;            // Original für Analyse
+    let pixelViewOn = true;             // Vorschau pixelig?
+    let loadedImg = null;               // HTMLImageElement für Canvas
 
-    // Analyse-Status & Cache (kein Re-Run bei gleichem Bild)
-    let analyzeInFlight = false;
-    let lastAnalyzedDataUrl = null;
-    let lastVisionResult = null;
+    // Analyse-Status & Cache
+    let analyzeInFlight = false;        // Läuft gerade eine Analyse?
+    let lastAnalyzedDataUrl = null;     // Zuletzt erfolgreich analysiertes Bild
+    let lastVisionResult = null;        // Zuletzt gespeichertes Ergebnisobjekt
 
-    // ===== Produkte (statisch) =====
+    // ===== Statische Produkte (Amazon /dp/ASIN) =====
     const PRODUCTS = {
-      carb:   { key:"carb", title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Zu blähenden KH-Mahlzeiten; kann Gas/Blähungen mindern.", subtitle:"KH-Enzyme" },
+      carb:   { key:"carb", title:"sanotact VerdauungsHeld (Alpha-Galactosidase), 40 Mini-Tabletten", asin:"B07PTKTLMJ", note:"Zu Beginn blähender KH-Mahlzeiten; kann Gas/Blähungen vermindern.", subtitle:"KH-Enzyme" },
       fat:    { key:"fat", title:"PANKREATIN 20 000 Laves Mikro – magensaftresistente Kapseln (Lipase)", asin:"B00ELU7SSM", note:"Zu fettreichen Mahlzeiten; kann fettigen, schmierigen Stuhl reduzieren.", subtitle:"Fett-Enzyme" },
       protein:{ key:"protein", title:"Doctor’s Best Bromelain 3000 GDU, 500 mg, 90 Kapseln", asin:"B09C1XV3P3", note:"Zu eiweißreichen Mahlzeiten; kann starken Geruch mindern.", subtitle:"Protein-Enzyme" }
     };
@@ -236,7 +244,7 @@
         els.toggleKey.textContent = (els.apiKey.type === 'password') ? '👁️' : '🙈';
       });
 
-      // Dropzone
+      // Dropzone: Klick, Drag&Drop, Paste
       els.dropzone.addEventListener('click', ()=> els.fileInput.click());
       els.fileInput.addEventListener('change', onFiles);
       ['dragenter','dragover'].forEach(ev => els.dropzone.addEventListener(ev, e=>{ e.preventDefault(); els.dropzone.classList.add('dragover'); }));
@@ -251,7 +259,7 @@
         if (file) { handleFile(file); toast('Bild aus Zwischenablage eingefügt', true); }
       });
 
-      // Pixel-Toggle
+      // Pixel-Toggle: Button auf Canvas + Schalter darunter
       els.previewCanvas.addEventListener('click', togglePixelPreview);
       els.overlayToggle.addEventListener('click', (e)=>{ e.stopPropagation(); togglePixelPreview(); });
       els.pixelSwitch.addEventListener('change', ()=>{
@@ -280,7 +288,7 @@
       el.className = `alert ${ok?'alert-success':'alert-error'} shadow`;
       el.innerHTML = `<span>${escapeHTML(msg)}</span>`;
       els.toasts.appendChild(el);
-      setTimeout(()=> el.remove(), 2200);
+      setTimeout(()=> el.remove(), 2600);
     }
     function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
@@ -300,8 +308,9 @@
       loadedImg.src = imageDataUrl;
       await loadedImg.decode();
 
+      // Neues Bild ⇒ Cache verwerfen (nur wenn anderes Bild)
       if (imageDataUrl !== lastAnalyzedDataUrl){
-        lastVisionResult = null; // anderes Bild → alten Cache ignorieren
+        lastVisionResult = null;
       }
 
       pixelViewOn = true;
@@ -309,7 +318,13 @@
       els.overlayToggle.textContent = 'Pixel: AN';
 
       els.previewWrap.classList.remove('hidden');
+      setStep(2);
       drawPreview();
+    }
+
+    function setStep(n){
+      const clsOn = 'step-primary';
+      [els.step1,els.step2,els.step3].forEach((el,i)=> el.classList.toggle(clsOn, i < n));
     }
 
     function fileToDataURL(file){
@@ -348,10 +363,11 @@
         ctx.drawImage(img, 0, 0, targetW, targetH);
         return;
       }
-      // Verpixeln – stark, nur Anzeige
+      // Stark verpixeln
       const pixelSize = 18;
       const smallW = Math.max(10, Math.round(targetW / pixelSize));
       const smallH = Math.max(10, Math.round(targetH / pixelSize));
+
       const small = document.createElement('canvas');
       small.width = smallW; small.height = smallH;
       const sctx = small.getContext('2d');
@@ -365,7 +381,8 @@
     function setLoading(on, msg='Analyse läuft…'){
       els.progressMsg.textContent = msg;
       els.progress.classList.toggle('hidden', !on);
-      analyzeInFlight = !!on; // Buttons bleiben sichtbar
+      // Buttons NICHT disabled – State bleibt simpel.
+      analyzeInFlight = !!on;
     }
 
     function resetUI(){
@@ -378,46 +395,54 @@
       els.redFlags.classList.add('hidden'); els.redFlags.innerHTML = '';
       els.bars.innerHTML = '';
       els.summary.textContent = '';
-      els.recs.classList.add('hidden');
-      els.topRec.innerHTML = '';
-      els.moreRecs.classList.add('hidden');
-      els.recsWrap.innerHTML = '';
+      els.recs.classList.add('hidden'); els.recsWrap.innerHTML = '';
+
+      setStep(1);
+      // Cache behalten ist ok – er gilt nur für dasselbe Bild.
+      // Beim nächsten anderen Bild wird er oben verworfen.
     }
 
-    // ===== Analyse (mit Dedupe) =====
+    // ===== Analyse (mit Cache & Dedupe) =====
     async function onAnalyze(){
       const key = els.apiKey.value.trim();
       if (!key){ toast('Bitte API-Key eingeben.'); return; }
       if (!imageDataUrl){ toast('Bitte zuerst ein Foto hinzufügen.'); return; }
 
-      // Ergebnis für dasselbe Bild wiederverwenden
+      // Wenn gleiche Datei schon erfolgreich analysiert wurde: Ergebnis wieder anzeigen.
       if (lastVisionResult && imageDataUrl === lastAnalyzedDataUrl){
+        els.results.classList.remove('hidden');
+        setStep(3);
         renderFinal(lastVisionResult, { fromCache:true });
         toast('Bereits analysiert – Ergebnis angezeigt.', true);
         return;
       }
+
       if (analyzeInFlight){
-        toast('Analyse läuft bereits…');
+        toast('Analyse läuft bereits für dieses Foto…');
         return;
       }
 
       setLoading(true, 'Foto wird geprüft…');
       try {
+        // 1) Vorprüfung
         const pre = await callResponses_Precheck(key, imageDataUrl);
         const ptxt = extractJSONText(pre);
         const pobj = safeParseJSON(ptxt);
         if (!pobj) throw new Error('Vorprüfung gab kein gültiges JSON zurück.');
 
+        // 2) Extraktion
         setLoading(true, 'Visuelle Analyse…');
         const res = await callResponses_Extract(key, imageDataUrl);
         const rtxt = extractJSONText(res);
         const vision = safeParseJSON(rtxt);
         if (!vision) throw new Error('Analyse gab kein gültiges JSON zurück.');
 
+        // Cache speichern
         lastAnalyzedDataUrl = imageDataUrl;
         lastVisionResult = vision;
 
         renderFinal(vision, { fromCache:false });
+        setStep(3);
         setLoading(false);
       } catch(e){
         setLoading(false);
@@ -425,40 +450,32 @@
       }
     }
 
-    function renderFinal(vo, opts={fromCache:false}){
-      const { percents } = computeScores(vo);
+    async function renderFinal(vo, opts={fromCache:false}){
+      const { percents } = computeScoresFromFeatures(vo);
 
-      // Qualität
       const q = (vo.vision_quality || 'fair').toLowerCase();
       const qLabel = (q==='good'?'gut':(q==='fair'?'mittel':'schlecht'));
-      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.fromCache ? ' · Cache' : '');
+      els.qualityBadge.textContent = 'Bildqualität: ' + qLabel + (opts.fromCache ? ' · (aus Zwischenspeicher)' : '');
       els.qualityBadge.classList.remove('hidden');
       els.qualityBadge.className = 'badge ' + (q==='good' ? 'badge-success' : q==='fair' ? 'badge-warning' : 'badge-error');
 
-      // Warnzeichen
-      renderRedFlags(vo.red_flags);
-
-      // Werte kompakt
       renderBars(percents);
+      renderRedFlags(vo.red_flags);
+      els.summary.textContent = composePlainSummary(vo);
 
-      // Kurzfazit: 1 Satz
-      els.summary.textContent = shortSummary(vo);
+      renderRecs(percents);
 
-      // Empfehlungen: nur Top sichtbar, Rest aufklappbar
-      renderRecommendations(percents);
-
-      // anzeigen
       els.results.classList.remove('hidden');
       setTimeout(()=> els.results.scrollIntoView({behavior:'smooth', block:'start'}), 60);
     }
 
-    // ===== UI: Werte =====
+    // ===== Ergebnis UI =====
     function renderBars(p){
       els.bars.innerHTML = '';
       const rows = [
-        { label:'KH',      val:Number(p.carb||0),    cls:'progress-warning' },
-        { label:'Protein', val:Number(p.protein||0), cls:'progress-info'    },
-        { label:'Fett',    val:Number(p.fat||0),     cls:'progress-success' }
+        { label:'Kohlenhydrate (KH)', val:Number(p.carb||0),    cls:'progress-warning' },
+        { label:'Protein',            val:Number(p.protein||0), cls:'progress-info'    },
+        { label:'Fett',               val:Number(p.fat||0),     cls:'progress-success' }
       ];
       rows.forEach(r=>{
         els.bars.insertAdjacentHTML('beforeend', `
@@ -467,8 +484,7 @@
               <span class="font-medium">${r.label}</span>
               <span class="tabular-nums">${r.val}%</span>
             </div>
-            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100"
-              aria-valuenow="${r.val}" aria-valuemin="0" aria-valuemax="100"></progress>
+            <progress class="progress ${r.cls} w-full" value="${r.val}" max="100" aria-valuenow="${r.val}" aria-valuemin="0" aria-valuemax="100"></progress>
           </div>
         `);
       });
@@ -490,34 +506,23 @@
       }
     }
 
-    // ===== Empfehlungen – Signal first =====
-    function renderRecommendations(p){
+    function renderRecs(p){
       const tag = (els.amazonTag.value || '').trim();
-      const url = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
+      const makeUrl = asin => `https://www.amazon.de/dp/${asin}${tag?`?tag=${encodeURIComponent(tag)}`:''}`;
 
       const items = [
         { ...PRODUCTS.carb,    score: Number(p.carb||0) },
         { ...PRODUCTS.protein, score: Number(p.protein||0) },
         { ...PRODUCTS.fat,     score: Number(p.fat||0) }
       ];
-      // Top wählen
       let top = items[0];
       for (let i=1; i<items.length; i++) if (items[i].score > top.score) top = items[i];
       const others = items.filter(x => x.key !== top.key);
 
-      // Wenn alles sehr niedrig (<30%) → Empfehlungen ausblenden
-      if (items.every(i => i.score < 30)){
-        els.recs.classList.add('hidden');
-        els.topRec.innerHTML = '';
-        els.moreRecs.classList.add('hidden');
-        els.recsWrap.innerHTML = '';
-        return;
-      }
-
       els.recs.classList.remove('hidden');
+      els.recsWrap.innerHTML = '';
 
-      // Top-Empfehlung (eine Karte)
-      els.topRec.innerHTML = `
+      els.recsWrap.insertAdjacentHTML('beforeend', `
         <div class="card border-2 border-primary bg-primary/5">
           <div class="card-body">
             <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -527,48 +532,44 @@
             <h4 class="card-title mt-1">${escapeHTML(top.title)}</h4>
             <p class="text-sm">${escapeHTML(top.note||'')}</p>
             <div class="card-actions justify-end">
-              <a class="btn btn-primary" href="${url(top.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
+              <a class="btn btn-primary" href="${makeUrl(top.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
             </div>
             <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
           </div>
         </div>
-      `;
+      `);
 
-      // Weitere verborgen, nur wenn sinnvoll (≥40%)
-      const goodOthers = others.filter(o => o.score >= 40);
-      if (goodOthers.length){
-        els.moreRecs.classList.remove('hidden');
-        els.recsWrap.innerHTML = '';
-        goodOthers.forEach(it=>{
-          els.recsWrap.insertAdjacentHTML('beforeend', `
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <div class="flex items-center justify-between gap-2 flex-wrap">
+      others.forEach(it=>{
+        const good = it.score >= 40;
+        const badgeCls = good ? 'badge-success' : 'badge-ghost';
+        const badgeTxt = good ? 'Empfehlung' : 'Optional';
+        els.recsWrap.insertAdjacentHTML('beforeend', `
+          <div class="card bg-base-200">
+            <div class="card-body">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span class="badge ${badgeCls}">${badgeTxt}</span>
                   <span class="badge">${escapeHTML(it.subtitle||'')}</span>
-                  <span class="text-sm text-base-content/60">Treffer: ${Math.round(it.score)}%</span>
                 </div>
-                <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
-                <p class="text-sm">${escapeHTML(it.note||'')}</p>
-                <div class="card-actions justify-end">
-                  <a class="btn btn-primary btn-sm" href="${url(it.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
-                </div>
-                <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
+                <span class="text-sm text-base-content/60">Treffer: ${Math.round(it.score)}%</span>
               </div>
+              <h4 class="card-title mt-1">${escapeHTML(it.title)}</h4>
+              <p class="text-sm">${escapeHTML(it.note||'')}</p>
+              <div class="card-actions justify-end">
+                <a class="btn btn-primary btn-sm" href="${makeUrl(it.asin)}" target="_blank" rel="noopener sponsored nofollow">Zum Produkt</a>
+              </div>
+              <div class="text-[10px] text-base-content/50 mt-1">Affiliate-Link</div>
             </div>
-          `);
-        });
-      } else {
-        els.moreRecs.classList.add('hidden');
-        els.recsWrap.innerHTML = '';
-      }
+          </div>
+        `);
+      });
     }
 
-    // ===== 1-Satz-Fazit =====
-    function shortSummary(vo){
+    function composePlainSummary(vo){
       const f = vo?.feature_flags || {};
       const b = Number(vo?.bristol || 0);
       const red = !!vo?.red_flags?.present;
-      if (red) return 'Achtung: mögliches Blut/Teerstuhl – bitte ärztlich abklären.';
+      if (red) return 'Achtung: mögliches Blut/Teerstuhl. Bitte ärztlich abklären.';
 
       const normal = (b>=3 && b<=5) && f.formed_loglike &&
         !f.oily_sheen && !f.sticks_to_bowl && !f.watery_liquid &&
@@ -576,30 +577,31 @@
         !f.red_blood && !f.black_tarry;
 
       if (normal) return 'Wirkt normal: braun und geformt.';
-      if (b === 7) return 'Wässrig – passt zu Durchfall. Trinken!';
+      if (b === 7) return 'Wässrig – passt zu Durchfall. Genug trinken.';
       if (b === 6) return 'Weich/breiig – oft vorübergehend.';
-      if (b <= 2)  return 'Hart/trocken – mehr trinken & bewegen.';
+      if (b <= 2)  return 'Hart/trocken – mehr trinken und bewegen.';
       if (f.oily_sheen || f.visible_fat_globules || f.sticks_to_bowl || f.floats || f.pale_clay_color) return 'Eher fettig/ölig.';
       if (f.watery_liquid || f.foamy_bubbles || f.many_small_fragments || f.undigested_fiber) return 'Eher wässrig/bruchstückig.';
       if (f.mucus_excess) return 'Etwas mehr Schleim sichtbar.';
-      if (vo?.detected_colors?.includes('green')) return 'Grünlich – meist harmlos.';
-      if (vo?.detected_colors?.includes('yellow')) return 'Gelblich – meist harmlos.';
+      if (vo?.detected_colors?.includes('green')) return 'Farbe grünlich – meist harmlos.';
+      if (vo?.detected_colors?.includes('yellow')) return 'Farbe gelblich – meist harmlos.';
       return 'Unauffällig, aber nicht eindeutig.';
     }
 
     // ===== Teilen & Kopieren (Text + Link) =====
     function buildShareText(){
       const p = readPercents();
-      const s = els.summary.textContent.trim();
-      const cats = [];
-      if (p.carb >= 40) cats.push('KH-Enzyme');
-      if (p.protein >= 40) cats.push('Protein-Enzyme');
-      if (p.fat >= 40) cats.push('Fett-Enzyme');
-      const enzymes = cats.length ? cats.join(', ') : 'keine klaren Enzym-Hinweise';
+      const summary = els.summary.textContent.trim();
+      const parts = [];
+      if (p.carb >= 40) parts.push('KH-Enzyme');
+      if (p.protein >= 40) parts.push('Protein-Enzyme');
+      if (p.fat >= 40) parts.push('Fett-Enzyme');
+      const enzymes = parts.length ? parts.join(', ') : 'keine klaren Enzym-Hinweise';
+
       return [
         'Ich hab meinen Stuhl getestet – mach du’s auch.',
-        `Kurzfazit: ${s || 'Kurz-Auswertung verfügbar.'}`,
-        `Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
+        `Kurzfazit: ${summary || 'Kurz-Auswertung verfügbar.'}`,
+        `Analyse-Werte: KH ${p.carb}% · Protein ${p.protein}% · Fett ${p.fat}%`,
         `Vermutete Enzym-Baustellen: ${enzymes}`,
         'Finde heraus, welche Verdauungsenzyme dir fehlen – anonym & schnell:',
         APP_URL
@@ -617,12 +619,14 @@
         }
       } catch(e){ toast('Teilen fehlgeschlagen: ' + limitErr(e)); }
     }
+
     function copyResultText(){
       const text = buildShareText();
       navigator.clipboard.writeText(text)
         .then(()=> toast('Text + Link kopiert.', true))
         .catch(()=> toast('Kopieren fehlgeschlagen.'));
     }
+
     function readPercents(){
       const nodes = els.bars.querySelectorAll('progress');
       const v = i => nodes[i] ? Number(nodes[i].value||0) : 0;
@@ -630,7 +634,7 @@
     }
 
     // ===== Scoring (nur Bildmerkmale) =====
-    function computeScores(vo){
+    function computeScoresFromFeatures(vo){
       const f = vo?.feature_flags || {};
       const b = Number(vo?.bristol || 0);
       const colors = Array.isArray(vo?.detected_colors) ? vo.detected_colors : [];
@@ -643,6 +647,7 @@
       fat += f.floats ? 1.2 : 0;
       fat += f.pale_clay_color ? 2.0 : 0;
       if (colors.includes('yellow')) fat += 0.6;
+
       // KH
       carb += f.watery_liquid ? 3.0 : 0;
       carb += f.foamy_bubbles ? 1.6 : 0;
@@ -650,8 +655,10 @@
       carb += f.many_small_fragments ? 1.2 : 0;
       carb += f.mucus_excess ? 0.8 : 0;
       carb += f.green_color ? 0.7 : 0;
+
       // Protein
       protein += (f.mucus_excess && f.formed_loglike) ? 1.2 : 0;
+
       // Bristol
       if (b === 6) carb += 1.6;
       if (b === 7) carb += 2.6;
@@ -670,7 +677,7 @@
     }
     function clamp01(x){ return x<0?0:x>1?1:x; }
 
-    // ===== API Utils =====
+    // ===== API Hilfen =====
     function extractJSONText(resp){
       if (typeof resp?.output_text === 'string' && resp.output_text.trim()) return resp.output_text.trim();
       const texts = [];
